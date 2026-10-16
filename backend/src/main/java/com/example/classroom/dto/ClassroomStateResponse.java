@@ -14,6 +14,9 @@ public class ClassroomStateResponse {
     private int pendingCount;
     private double completionPercentage;
     private boolean allowAnswers = false;
+    private boolean groupsEnabled = false;
+    private int maxGroupSize = 2;
+    private List<StudentGroupDto> groups = new ArrayList<>();
     private List<QuestionDto> questions = new ArrayList<>();
     private Instant createdAt;
 
@@ -32,6 +35,9 @@ public class ClassroomStateResponse {
         this.completionPercentage = completionPercentage;
         this.createdAt = createdAt;
         this.allowAnswers = false;
+        this.groupsEnabled = false;
+        this.maxGroupSize = 2;
+        this.groups = new ArrayList<>();
         this.questions = new ArrayList<>();
     }
 
@@ -121,6 +127,30 @@ public class ClassroomStateResponse {
 
     public void setQuestions(List<QuestionDto> questions) {
         this.questions = questions != null ? questions : new ArrayList<>();
+    }
+
+    public boolean isGroupsEnabled() {
+        return groupsEnabled;
+    }
+
+    public void setGroupsEnabled(boolean groupsEnabled) {
+        this.groupsEnabled = groupsEnabled;
+    }
+
+    public int getMaxGroupSize() {
+        return maxGroupSize;
+    }
+
+    public void setMaxGroupSize(int maxGroupSize) {
+        this.maxGroupSize = maxGroupSize;
+    }
+
+    public List<StudentGroupDto> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(List<StudentGroupDto> groups) {
+        this.groups = groups != null ? groups : new ArrayList<>();
     }
 }
 

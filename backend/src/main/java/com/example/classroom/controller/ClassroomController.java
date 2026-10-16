@@ -130,5 +130,84 @@ public class ClassroomController {
         ClassroomStateResponse response = classroomService.closeClassroom(roomCode, teacherToken);
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/classrooms/{roomCode}/groups/settings")
+    public ResponseEntity<ClassroomStateResponse> configureGroups(
+            @PathVariable String roomCode,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken,
+            @Valid @RequestBody ConfigureGroupsRequest request) {
+        ClassroomStateResponse response = classroomService.configureGroups(
+                roomCode, teacherToken, request.isEnabled(), request.getMaxGroupSize());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/groups/reset")
+    public ResponseEntity<ClassroomStateResponse> resetGroups(
+            @PathVariable String roomCode,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken) {
+        ClassroomStateResponse response = classroomService.resetGroups(roomCode, teacherToken);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/groups")
+    public ResponseEntity<ClassroomStateResponse> createGroup(
+            @PathVariable String roomCode,
+            @Valid @RequestBody CreateGroupRequest request) {
+        ClassroomStateResponse response = classroomService.createGroup(
+                roomCode, request.getStudentId(), request.getGroupName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/groups/{groupId}/members")
+    public ResponseEntity<ClassroomStateResponse> addMemberToGroup(
+            @PathVariable String roomCode,
+            @PathVariable String groupId,
+            @Valid @RequestBody AddGroupMemberRequest request) {
+        ClassroomStateResponse response = classroomService.addMemberToGroup(
+                roomCode, groupId, request.getRequestingStudentId(), request.getTargetStudentId());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/groups/{groupId}/members/{studentId}/leave")
+    public ResponseEntity<ClassroomStateResponse> leaveGroup(
+            @PathVariable String roomCode,
+            @PathVariable String groupId,
+            @PathVariable String studentId) {
+        ClassroomStateResponse response = classroomService.leaveGroup(roomCode, groupId, studentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/classrooms/{roomCode}/groups/{groupId}/members/{studentId}")
+    public ResponseEntity<ClassroomStateResponse> removeMemberByTeacher(
+            @PathVariable String roomCode,
+            @PathVariable String groupId,
+            @PathVariable String studentId,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken) {
+        ClassroomStateResponse response = classroomService.removeStudentFromGroupByTeacher(
+                roomCode, teacherToken, groupId, studentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/groups/{groupId}/members/{studentId}/remove")
+    public ResponseEntity<ClassroomStateResponse> removeMemberByTeacherPost(
+            @PathVariable String roomCode,
+            @PathVariable String groupId,
+            @PathVariable String studentId,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken) {
+        ClassroomStateResponse response = classroomService.removeStudentFromGroupByTeacher(
+                roomCode, teacherToken, groupId, studentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/groups/{groupId}/assign")
+    public ResponseEntity<ClassroomStateResponse> assignMemberByTeacher(
+            @PathVariable String roomCode,
+            @PathVariable String groupId,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken,
+            @Valid @RequestBody AssignStudentGroupRequest request) {
+        ClassroomStateResponse response = classroomService.assignStudentToGroupByTeacher(
+                roomCode, teacherToken, groupId, request.getStudentId());
+        return ResponseEntity.ok(response);
+    }
 }
 

@@ -51,6 +51,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    @ExceptionHandler(GroupConflictException.class)
+    public ResponseEntity<ErrorResponse> handleGroupConflict(GroupConflictException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(UnauthorizedTeacherException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorizedTeacher(UnauthorizedTeacherException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(

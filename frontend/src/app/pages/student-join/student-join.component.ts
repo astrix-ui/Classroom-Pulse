@@ -79,7 +79,7 @@ export class StudentJoinComponent implements OnInit {
         if (err.status === 404) {
           this.errorMessage = 'Classroom not found. Please check your 6-character room code.';
         } else if (err.status === 409) {
-          this.errorMessage = err?.error?.message || 'A student with this name has already joined, or session is closed.';
+          this.errorMessage = err?.error?.message || 'A student with this name has already joined this room. Please choose a unique name.';
         } else {
           this.errorMessage = err?.error?.message || 'Failed to join classroom. Please try again.';
         }

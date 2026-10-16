@@ -114,9 +114,6 @@
                 <span class="toggle-thumb"></span>
               </span>
               <span class="toggle-label">Written Answers</span>
-              <span class="toggle-state-badge" [class.badge-paused]="!isAllowAnswers">
-                {{ isAllowAnswers ? 'ENABLED' : 'DISABLED' }}
-              </span>
             </button>
 
             <!-- Question Edit & Delete Actions -->
@@ -239,6 +236,150 @@
         </form>
       </section>
 
+      <!-- Student Groups Section (Visible to Teacher) -->
+      <section class="card groups-card" aria-labelledby="groups-title">
+        <div class="section-header-compact">
+          <div class="title-with-seq">
+            <h2 id="groups-title" class="section-title">Student Groups</h2>
+            <span class="count-badge">{{ groups.length }}</span>
+            <span *ngIf="isGroupsEnabled" class="tag-status tag-completed">Active</span>
+            <span *ngIf="!isGroupsEnabled" class="tag-status tag-inactive">Disabled</span>
+          </div>
+
+          <div class="group-controls-row">
+            <!-- Group Size Selector -->
+            <div class="group-size-picker" [class.disabled]="configuringGroups || !classroom?.active">
+              <label for="groupSizeSelect" class="group-size-label">Size:</label>
+              <select 
+                id="groupSizeSelect" 
+                class="group-size-select" 
+                [ngModel]="groupSizeInput" 
+                (ngModelChange)="onGroupSizeChange($event)"
+                [disabled]="configuringGroups || !classroom?.active">
+                <option [ngValue]="2">2 per group</option>
+                <option [ngValue]="3">3 per group</option>
+                <option [ngValue]="4">4 per group</option>
+                <option [ngValue]="5">5 per group</option>
+                <option [ngValue]="6">6 per group</option>
+              </select>
+            </div>
+
+            <!-- Group Toggle Switch -->
+            <button 
+              type="button" 
+              class="toggle-switch-btn" 
+              [class.active]="isGroupsEnabled" 
+              [disabled]="configuringGroups || !classroom?.active"
+              (click)="onToggleGroups()" 
+              role="switch" 
+              [attr.aria-checked]="isGroupsEnabled" 
+              title="Toggle student group formation">
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">Form Groups</span>
+            </button>
+
+            <!-- Reset Groups Button -->
+            <button 
+              *ngIf="groups.length > 0 && classroom?.active"
+              type="button" 
+              class="btn btn-secondary btn-sm" 
+              [disabled]="resettingGroups" 
+              (click)="onResetGroups()"
+              title="Reset all groups and release members">
+              {{ resettingGroups ? 'Resetting...' : 'Reset Groups' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Groups Mode Status Banner -->
+        <div *ngIf="classroom?.active" class="answer-mode-notice" [class.mode-written]="isGroupsEnabled" [class.mode-simple]="!isGroupsEnabled" role="status">
+          <svg *ngIf="isGroupsEnabled" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <svg *ngIf="!isGroupsEnabled" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+          </svg>
+          <span *ngIf="isGroupsEnabled">
+            <strong>Group Formation Enabled:</strong> Students are prompted to form groups of {{ maxGroupSize }}. Members are selected from the room.
+          </span>
+          <span *ngIf="!isGroupsEnabled">
+            <strong>Groups Disabled:</strong> Students work individually. Turn on to allow forming groups of {{ maxGroupSize }}.
+          </span>
+        </div>
+
+        <!-- Groups Overview Stats -->
+        <div *ngIf="isGroupsEnabled" class="groups-summary-bar">
+          <span class="summary-chip"><strong>{{ groups.length }}</strong> group(s) formed</span>
+          <span class="summary-chip"><strong>{{ students.length - unassignedStudents.length }}</strong>/{{ students.length }} grouped</span>
+          <span class="summary-chip summary-chip-pending"><strong>{{ unassignedStudents.length }}</strong> unassigned</span>
+        </div>
+
+        <!-- Empty Groups State -->
+        <div *ngIf="isGroupsEnabled && groups.length === 0" class="empty-groups-state">
+          <p class="empty-text">No groups have been created yet. Students will see the prompt to create groups of {{ maxGroupSize }}.</p>
+        </div>
+
+        <!-- Formed Groups List -->
+        <div *ngIf="isGroupsEnabled && groups.length > 0" class="groups-grid">
+          <div *ngFor="let g of groups" class="group-card-item">
+            <div class="group-card-header">
+              <div class="group-card-title-wrap">
+                <span class="group-card-name">{{ g.groupName }}</span>
+                <span class="group-capacity-tag" [class.capacity-full]="g.members.length >= maxGroupSize">
+                  {{ g.members.length }}/{{ maxGroupSize }} {{ g.members.length >= maxGroupSize ? 'Full' : 'Open' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Group Members Pill List with Remove Action -->
+            <div class="group-members-pill-wrap">
+              <div *ngFor="let m of g.members" class="group-member-pill" [class.creator-pill]="m.studentId === g.creatorStudentId">
+                <span class="member-pill-dot"></span>
+                <span class="member-pill-name">{{ m.studentName }}</span>
+                <span *ngIf="m.studentId === g.creatorStudentId" class="creator-badge">Creator</span>
+                <button 
+                  *ngIf="classroom?.active"
+                  type="button" 
+                  class="member-remove-btn" 
+                  (click)="onRemoveStudentFromGroup(g.groupId, m.studentId)" 
+                  [disabled]="managingGroupMember"
+                  title="Remove {{ m.studentName }} from group">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Teacher Add/Move Student Dropdown (if group has capacity) -->
+            <div *ngIf="g.members.length < maxGroupSize && classroom?.active" class="group-add-member-row">
+              <select 
+                class="group-add-select" 
+                [disabled]="managingGroupMember"
+                (change)="onAddStudentToGroupFromSelect(g.groupId, $event)">
+                <option value="" selected disabled>+ Add or Move student...</option>
+                <optgroup *ngIf="unassignedStudents.length > 0" label="Unassigned Students">
+                  <option *ngFor="let u of unassignedStudents" [value]="u.studentId">
+                    {{ u.studentName }} (Unassigned)
+                  </option>
+                </optgroup>
+                <optgroup *ngIf="getOtherGroupStudents(g.groupId).length > 0" label="Move from other groups">
+                  <option *ngFor="let o of getOtherGroupStudents(g.groupId)" [value]="o.studentId">
+                    {{ o.studentName }} (Move from {{ o.groupName }})
+                  </option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Session Questions History (Visible to Teacher) -->
       <section class="card history-card" aria-labelledby="history-title">
         <div class="section-header-compact">
@@ -308,6 +449,30 @@
           </button>
         </div>
 
+        <!-- Group-wise filter (active when groups are enabled or groups exist) -->
+        <div class="sidebar-group-filter-wrap" *ngIf="isGroupsEnabled || groups.length > 0">
+          <label for="groupFilterSelect" class="sidebar-group-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Group:
+          </label>
+          <select 
+            id="groupFilterSelect" 
+            class="sidebar-group-select" 
+            [(ngModel)]="filterGroup" 
+            [ngModelOptions]="{standalone: true}">
+            <option value="ALL">All Groups & Unassigned ({{ students.length }})</option>
+            <option value="UNASSIGNED">Unassigned Only ({{ unassignedStudents.length }})</option>
+            <option *ngFor="let g of groups" [value]="g.groupId">
+              {{ g.groupName }} ({{ g.members.length }})
+            </option>
+          </select>
+        </div>
+
         <!-- Mini Search Bar -->
         <div class="search-wrap" *ngIf="students.length > 5">
           <input 
@@ -357,6 +522,7 @@
                 'dot-inactive': !hasActiveQuestion
               }"></span>
               <span class="student-name-text" [title]="student.studentName">{{ student.studentName }}</span>
+              <span *ngIf="isGroupsEnabled && student.groupName" class="student-group-chip">{{ student.groupName }}</span>
             </div>
 
             <div class="student-cell-right">
@@ -384,16 +550,25 @@
   </div>
 </div>
 
-<!-- Student Answer Inspection Modal -->
+<!-- Student Answer Inspection Modal (Clean & Minimal) -->
 <div *ngIf="selectedStudent" class="modal-backdrop" (click)="onCloseStudentModal()" role="dialog" aria-modal="true" aria-labelledby="student-modal-title">
   <div class="modal-card student-modal-card" (click)="$event.stopPropagation()">
-    <!-- Modal Header -->
-    <div class="modal-header">
+    <!-- Minimal Header -->
+    <div class="minimal-modal-header">
       <div class="modal-title-wrap">
         <div class="student-avatar-sm">{{ selectedStudent.studentName.charAt(0).toUpperCase() }}</div>
         <div>
-          <h3 id="student-modal-title" class="modal-title">{{ selectedStudent.studentName }}</h3>
-          <span class="modal-subtitle">Answered Questions Log</span>
+          <div class="minimal-header-name-row">
+            <h3 id="student-modal-title" class="minimal-student-name">{{ selectedStudent.studentName }}</h3>
+            <span *ngIf="selectedStudent.groupName" class="minimal-group-badge">{{ selectedStudent.groupName }}</span>
+          </div>
+          <div class="minimal-header-sub">
+            <span>{{ getStudentAnsweredCount(selectedStudent) }} of {{ allQuestions.length }} answered</span>
+            <span class="meta-separator">&bull;</span>
+            <span [class.text-done]="selectedStudent.status === 'COMPLETED' && hasActiveQuestion">
+              {{ !hasActiveQuestion ? 'Waiting' : (selectedStudent.status === 'COMPLETED' ? 'Done with current' : 'Pending current') }}
+            </span>
+          </div>
         </div>
       </div>
       <button type="button" class="btn-close-icon" (click)="onCloseStudentModal()" aria-label="Close modal">
@@ -404,77 +579,46 @@
       </button>
     </div>
 
-    <!-- Modal Summary Banner -->
-    <div class="student-modal-summary">
-      <div class="summary-stat-cell">
-        <span class="summary-num">{{ getStudentAnsweredCount(selectedStudent) }} / {{ allQuestions.length }}</span>
-        <span class="summary-label">Completed</span>
-      </div>
-      <div class="summary-stat-cell">
-        <span class="summary-num">
-          {{ allQuestions.length > 0 ? (getStudentAnsweredCount(selectedStudent) * 100 / allQuestions.length | number:'1.0-0') : 0 }}%
-        </span>
-        <span class="summary-label">Rate</span>
-      </div>
-      <div class="summary-stat-cell">
-        <span class="summary-num tag-status" [ngClass]="{
-          'tag-completed': selectedStudent.status === 'COMPLETED' && hasActiveQuestion,
-          'tag-pending': selectedStudent.status === 'PENDING' && hasActiveQuestion,
-          'tag-inactive': !hasActiveQuestion
-        }">
-          {{ !hasActiveQuestion ? 'Waiting' : (selectedStudent.status === 'COMPLETED' ? 'Done' : 'Pending') }}
-        </span>
-        <span class="summary-label">Current Question</span>
-      </div>
-    </div>
-
-    <!-- Questions Breakdown List -->
-    <div class="student-questions-scroll">
-      <h4 class="breakdown-title">Session Questions</h4>
-
+    <!-- Questions & Answers List -->
+    <div class="minimal-answers-scroll">
       <div *ngIf="allQuestions.length === 0" class="empty-breakdown">
         <p>No questions have been asked in this session yet.</p>
       </div>
 
-      <div *ngIf="allQuestions.length > 0" class="breakdown-list">
-        <div *ngFor="let q of allQuestions; trackBy: trackByQuestionId" 
-             class="breakdown-item" 
-             [class.answered]="isQuestionAnsweredByStudent(selectedStudent, q.questionId)">
-          <div class="breakdown-status-col">
-            <span *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="status-icon-check" title="Completed">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </span>
-            <span *ngIf="!isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="status-icon-pending" title="Not completed">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"></circle>
-              </svg>
-            </span>
+      <div *ngIf="allQuestions.length > 0" class="minimal-q-list">
+        <div *ngFor="let q of allQuestions; trackBy: trackByQuestionId" class="minimal-q-item">
+          <!-- Question Header Row -->
+          <div class="minimal-q-header">
+            <div class="minimal-q-title-wrap">
+              <span class="minimal-q-num">Q{{ q.sequenceNumber }}</span>
+              <span class="minimal-q-text">{{ q.questionText }}</span>
+            </div>
+            <span *ngIf="classroom?.currentQuestion?.questionId === q.questionId" class="tag-status tag-completed">Live</span>
           </div>
 
-          <div class="breakdown-content-col">
-            <div class="breakdown-header-row">
-              <span class="breakdown-seq">Q#{{ q.sequenceNumber }}</span>
-              <span *ngIf="classroom?.currentQuestion?.questionId === q.questionId" class="tag-status tag-completed">Active</span>
-              <span *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="breakdown-time">
-                Completed at {{ getStudentAnsweredAt(selectedStudent, q.questionId) | date:'shortTime' }}
-              </span>
-              <span *ngIf="!isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="breakdown-unanswered">
-                Not answered
-              </span>
+          <!-- Answer Presentation -->
+          <div class="minimal-q-body">
+            <!-- Case 1: Student answered with text -->
+            <div *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId) && getStudentAnswerText(selectedStudent, q.questionId)" class="minimal-answer-box">
+              <div class="minimal-answer-top">
+                <span class="minimal-answer-label">Answer</span>
+                <span class="minimal-answer-time">{{ getStudentAnsweredAt(selectedStudent, q.questionId) | date:'shortTime' }}</span>
+              </div>
+              <p class="minimal-answer-body">{{ getStudentAnswerText(selectedStudent, q.questionId) }}</p>
             </div>
-            <p class="breakdown-text">{{ q.questionText }}</p>
 
-            <!-- Student Submitted Answer Display -->
-            <div *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="student-answer-wrap">
-              <div *ngIf="getStudentAnswerText(selectedStudent, q.questionId)" class="student-answer-box">
-                <span class="answer-box-label">Student Answer:</span>
-                <p class="answer-box-text">{{ getStudentAnswerText(selectedStudent, q.questionId) }}</p>
-              </div>
-              <div *ngIf="!getStudentAnswerText(selectedStudent, q.questionId)" class="answer-box-simple">
-                <span class="answer-simple-tag">Completed (Simple mode &mdash; no text required)</span>
-              </div>
+            <!-- Case 2: Student answered in simple mode (no text) -->
+            <div *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId) && !getStudentAnswerText(selectedStudent, q.questionId)" class="minimal-simple-status">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Marked completed at {{ getStudentAnsweredAt(selectedStudent, q.questionId) | date:'shortTime' }} (Simple mode)</span>
+            </div>
+
+            <!-- Case 3: Student did not answer this question -->
+            <div *ngIf="!isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="minimal-unanswered-row">
+              <span class="minimal-unanswered-dash">&mdash;</span>
+              <span class="minimal-unanswered-note">Not answered</span>
             </div>
           </div>
         </div>
@@ -482,7 +626,7 @@
     </div>
 
     <!-- Modal Footer -->
-    <div class="modal-footer">
+    <div class="minimal-modal-footer">
       <button type="button" class="btn btn-secondary btn-sm" (click)="onCloseStudentModal()">
         Close
       </button>

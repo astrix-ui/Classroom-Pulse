@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -86,7 +87,7 @@ class ClassroomControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.message").value("A student with name 'Ayush' has already joined this classroom"));
+                .andExpect(jsonPath("$.message").value("A student with name 'Ayush' has already joined this classroom. Please choose a different name."));
     }
 
     @Test
@@ -158,6 +159,74 @@ class ClassroomControllerTest {
         mockMvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/classrooms/{roomCode}/groups/settings configures group formation")
+    void testConfigureGroupsEndpoint() throws Exception {
+        ClassroomStateResponse state = new ClassroomStateResponse(
+                "AB7KQ2", true, null, Collections.emptyList(), 0, 0, 0, 0.0, Instant.now()
+        );
+        state.setGroupsEnabled(true);
+        state.setMaxGroupSize(3);
+
+        when(classroomService.configureGroups("AB7KQ2", "t-uuid-1", true, 3)).thenReturn(state);
+
+        ConfigureGroupsRequest request = new ConfigureGroupsRequest(true, 3);
+        mockMvc.perform(put("/api/classrooms/AB7KQ2/groups/settings")
+                        .header("X-Teacher-Token", "t-uuid-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupsEnabled").value(true))
+                .andExpect(jsonPath("$.maxGroupSize").value(3));
+    }
+
+    @Test
+    @DisplayName("POST /api/classrooms/{roomCode}/groups creates a new group")
+    void testCreateGroupEndpoint() throws Exception {
+        ClassroomStateResponse state = new ClassroomStateResponse(
+                "AB7KQ2", true, null, Collections.emptyList(), 1, 0, 1, 0.0, Instant.now()
+        );
+        state.setGroups(List.of(new StudentGroupDto("g-1", "Tigers", "s-1", "Alice", Instant.now(), Collections.emptyList())));
+
+        when(classroomService.createGroup("AB7KQ2", "s-1", "Tigers")).thenReturn(state);
+
+        CreateGroupRequest request = new CreateGroupRequest("s-1", "Tigers");
+        mockMvc.perform(post("/api/classrooms/AB7KQ2/groups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.groups[0].groupName").value("Tigers"));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/classrooms/{roomCode}/groups/{groupId}/members/{studentId} removes student by teacher")
+    void testRemoveMemberByTeacherEndpoint() throws Exception {
+        ClassroomStateResponse state = new ClassroomStateResponse(
+                "AB7KQ2", true, null, Collections.emptyList(), 1, 0, 1, 0.0, Instant.now()
+        );
+        when(classroomService.removeStudentFromGroupByTeacher("AB7KQ2", "t-uuid-1", "g-1", "s-1")).thenReturn(state);
+
+        mockMvc.perform(delete("/api/classrooms/AB7KQ2/groups/g-1/members/s-1")
+                        .header("X-Teacher-Token", "t-uuid-1"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("POST /api/classrooms/{roomCode}/groups/{groupId}/assign assigns student by teacher")
+    void testAssignMemberByTeacherEndpoint() throws Exception {
+        ClassroomStateResponse state = new ClassroomStateResponse(
+                "AB7KQ2", true, null, Collections.emptyList(), 1, 0, 1, 0.0, Instant.now()
+        );
+        when(classroomService.assignStudentToGroupByTeacher("AB7KQ2", "t-uuid-1", "g-1", "s-2")).thenReturn(state);
+
+        AssignStudentGroupRequest request = new AssignStudentGroupRequest("s-2");
+        mockMvc.perform(post("/api/classrooms/AB7KQ2/groups/g-1/assign")
+                        .header("X-Teacher-Token", "t-uuid-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
     }
 }
 

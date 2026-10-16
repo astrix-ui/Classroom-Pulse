@@ -221,15 +221,40 @@ public class ClassroomService {
             }
         }
 
-        // Thread-safe idempotent status change recording questionId and answerText
-        boolean updated = student.markCompleted(currentQuestion.getQuestionId(), answerText, Instant.now());
+        Instant now = Instant.now();
+        boolean anyUpdated = false;
 
-        ClassroomStateResponse state = toSafeState(session);
-        if (updated) {
-            broadcastEvent(ClassroomEventType.STUDENT_STATUS_CHANGED, session.getRoomCode(), state);
+        synchronized (session) {
+            String groupId = student.getGroupId();
+            StudentGroup group = (session.isGroupsEnabled() && groupId != null)
+                    ? session.findGroupById(groupId)
+                    : null;
+
+            if (group != null) {
+                // If student is part of an active group, submit answer on behalf of all group members
+                for (GroupMember member : group.getMembers()) {
+                    StudentStatus memberStatus = session.getStudent(member.getStudentId());
+                    if (memberStatus != null) {
+                        boolean updated = memberStatus.markCompleted(currentQuestion.getQuestionId(), answerText, now);
+                        if (updated) {
+                            anyUpdated = true;
+                        }
+                    }
+                }
+                log.info("Student {} submitted answer for group {} ({} members) in room {}",
+                        student.getStudentName(), group.getGroupName(), group.getMemberCount(), roomCode);
+            } else {
+                anyUpdated = student.markCompleted(currentQuestion.getQuestionId(), answerText, now);
+                log.info("Student {} submitted individual answer in room {}", student.getStudentName(), roomCode);
+            }
+
+            ClassroomStateResponse state = toSafeState(session);
+            if (anyUpdated) {
+                broadcastEvent(ClassroomEventType.STUDENT_STATUS_CHANGED, session.getRoomCode(), state);
+            }
+
+            return state;
         }
-
-        return state;
     }
 
     public ClassroomStateResponse resetClassroom(String roomCode, String teacherToken) {
@@ -353,8 +378,253 @@ public class ClassroomService {
         state.setQuestions(session.getQuestionHistory().stream()
                 .map(QuestionDto::fromDomain)
                 .collect(Collectors.toList()));
+        state.setGroupsEnabled(session.isGroupsEnabled());
+        state.setMaxGroupSize(session.getMaxGroupSize());
+        state.setGroups(session.getGroups().stream()
+                .map(StudentGroupDto::fromDomain)
+                .collect(Collectors.toList()));
 
         return state;
+    }
+
+    public ClassroomStateResponse configureGroups(String roomCode, String teacherToken, boolean enabled, int maxGroupSize) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+        verifyTeacherToken(session, teacherToken);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        if (maxGroupSize < 2) {
+            throw new IllegalArgumentException("Group size must be at least 2");
+        }
+
+        synchronized (session) {
+            session.setGroupsEnabled(enabled);
+            session.setMaxGroupSize(maxGroupSize);
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Groups configured in room {}: enabled={}, maxGroupSize={}", roomCode, enabled, maxGroupSize);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse resetGroups(String roomCode, String teacherToken) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+        verifyTeacherToken(session, teacherToken);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        synchronized (session) {
+            for (StudentStatus student : session.getStudents().values()) {
+                student.setGroupId(null);
+                student.setGroupName(null);
+            }
+            session.clearGroups();
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Groups reset in room {}", roomCode);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse createGroup(String roomCode, String studentId, String groupName) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        if (!session.isGroupsEnabled()) {
+            throw new InvalidClassroomStateException("Group formation is not enabled by teacher");
+        }
+
+        StudentStatus creator = session.getStudent(studentId);
+        if (creator == null) {
+            throw new StudentNotFoundException(studentId);
+        }
+
+        synchronized (session) {
+            if (session.isStudentInAnyGroup(studentId)) {
+                throw new GroupConflictException("You are already in a group");
+            }
+
+            String finalGroupName = (groupName != null && !groupName.trim().isEmpty())
+                    ? groupName.trim()
+                    : "Group " + (session.getGroups().size() + 1);
+
+            String groupId = UUID.randomUUID().toString();
+            StudentGroup group = new StudentGroup(groupId, finalGroupName, studentId, creator.getStudentName(), Instant.now());
+            group.addMember(new GroupMember(studentId, creator.getStudentName(), Instant.now()));
+
+            creator.setGroupId(groupId);
+            creator.setGroupName(finalGroupName);
+            session.addGroup(group);
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Student {} created group {} in room {}", creator.getStudentName(), finalGroupName, roomCode);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse addMemberToGroup(String roomCode, String groupId, String requestingStudentId, String targetStudentId) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        if (!session.isGroupsEnabled()) {
+            throw new InvalidClassroomStateException("Group formation is not enabled by teacher");
+        }
+
+        synchronized (session) {
+            StudentGroup group = session.findGroupById(groupId);
+            if (group == null) {
+                throw new IllegalArgumentException("Group not found");
+            }
+
+            if (!group.hasMember(requestingStudentId)) {
+                throw new IllegalArgumentException("Only members of this group can add other students");
+            }
+
+            if (group.getMemberCount() >= session.getMaxGroupSize()) {
+                throw new IllegalStateException("Group is already full (maximum " + session.getMaxGroupSize() + " members)");
+            }
+
+            StudentStatus targetStudent = session.getStudent(targetStudentId);
+            if (targetStudent == null) {
+                throw new StudentNotFoundException(targetStudentId);
+            }
+
+            // Concurrency check: if student was already added by another group
+            if (session.isStudentInAnyGroup(targetStudentId)) {
+                throw new GroupConflictException("Student '" + targetStudent.getStudentName() + "' has already been added to another group.");
+            }
+
+            group.addMember(new GroupMember(targetStudentId, targetStudent.getStudentName(), Instant.now()));
+            targetStudent.setGroupId(group.getGroupId());
+            targetStudent.setGroupName(group.getGroupName());
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Student {} added to group {} in room {}", targetStudent.getStudentName(), group.getGroupName(), roomCode);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse leaveGroup(String roomCode, String groupId, String studentId) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        synchronized (session) {
+            StudentGroup group = session.findGroupById(groupId);
+            if (group != null) {
+                group.removeMember(studentId);
+                StudentStatus student = session.getStudent(studentId);
+                if (student != null) {
+                    student.setGroupId(null);
+                    student.setGroupName(null);
+                }
+
+                if (group.getMemberCount() == 0) {
+                    session.removeGroup(groupId);
+                }
+            }
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Student {} left group {} in room {}", studentId, groupId, roomCode);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse removeStudentFromGroupByTeacher(String roomCode, String teacherToken, String groupId, String studentId) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+        verifyTeacherToken(session, teacherToken);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        synchronized (session) {
+            StudentGroup group = session.findGroupById(groupId);
+            if (group != null) {
+                group.removeMember(studentId);
+                StudentStatus student = session.getStudent(studentId);
+                if (student != null) {
+                    student.setGroupId(null);
+                    student.setGroupName(null);
+                }
+
+                if (group.getMemberCount() == 0) {
+                    session.removeGroup(groupId);
+                }
+            }
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Teacher removed student {} from group {} in room {}", studentId, groupId, roomCode);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse assignStudentToGroupByTeacher(String roomCode, String teacherToken, String targetGroupId, String studentId) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+        verifyTeacherToken(session, teacherToken);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        synchronized (session) {
+            StudentGroup targetGroup = session.findGroupById(targetGroupId);
+            if (targetGroup == null) {
+                throw new IllegalArgumentException("Target group not found");
+            }
+
+            if (targetGroup.getMemberCount() >= session.getMaxGroupSize()) {
+                throw new IllegalStateException("Target group is already full (maximum " + session.getMaxGroupSize() + " members)");
+            }
+
+            StudentStatus student = session.getStudent(studentId);
+            if (student == null) {
+                throw new StudentNotFoundException(studentId);
+            }
+
+            // If the student is already in target group, no-op
+            if (targetGroup.hasMember(studentId)) {
+                return toSafeState(session);
+            }
+
+            // If student is currently in any other group, remove them from that group first
+            for (StudentGroup g : new ArrayList<>(session.getGroups())) {
+                if (g.hasMember(studentId)) {
+                    g.removeMember(studentId);
+                    if (g.getMemberCount() == 0) {
+                        session.removeGroup(g.getGroupId());
+                    }
+                    break;
+                }
+            }
+
+            targetGroup.addMember(new GroupMember(studentId, student.getStudentName(), Instant.now()));
+            student.setGroupId(targetGroup.getGroupId());
+            student.setGroupName(targetGroup.getGroupName());
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Teacher assigned student {} to group {} in room {}", student.getStudentName(), targetGroup.getGroupName(), roomCode);
+            return state;
+        }
     }
 }
 

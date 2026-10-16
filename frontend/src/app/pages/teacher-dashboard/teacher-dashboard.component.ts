@@ -6,7 +6,7 @@ import { takeUntil, catchError } from 'rxjs/operators';
 import { ClassroomApiService } from '../../core/services/classroom-api.service';
 import { ClassroomSocketService } from '../../core/services/classroom-socket.service';
 import { SessionStorageService } from '../../core/services/session-storage.service';
-import { ClassroomSession } from '../../core/models/classroom.model';
+import { ClassroomSession, StudentGroupDto } from '../../core/models/classroom.model';
 import { ConnectionState, WebSocketEvent } from '../../core/models/websocket-event.model';
 import { StudentDto } from '../../core/models/student-status.model';
 import { QuestionDto } from '../../core/models/question.model';
@@ -45,6 +45,11 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Allow Answers State
   togglingAllowAnswers = false;
+
+  // Groups State
+  configuringGroups = false;
+  resettingGroups = false;
+  groupSizeInput = 2;
 
   // Student Inspection Modal State
   selectedStudent: StudentDto | null = null;
@@ -105,6 +110,22 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   get allQuestions(): QuestionDto[] {
     return this.classroom?.questions || [];
+  }
+
+  get isGroupsEnabled(): boolean {
+    return !!this.classroom?.groupsEnabled;
+  }
+
+  get maxGroupSize(): number {
+    return this.classroom?.maxGroupSize || 2;
+  }
+
+  get groups(): StudentGroupDto[] {
+    return this.classroom?.groups || [];
+  }
+
+  get unassignedStudents(): StudentDto[] {
+    return this.students.filter(s => !s.groupId);
   }
 
   get students(): StudentDto[] {
@@ -335,7 +356,9 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   filterStatus: 'ALL' | 'COMPLETED' | 'PENDING' = 'ALL';
+  filterGroup: string = 'ALL';
   searchQuery = '';
+  managingGroupMember = false;
 
   get filteredStudents(): StudentDto[] {
     let list = this.students;
@@ -343,6 +366,11 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       list = list.filter(s => s.status === 'COMPLETED');
     } else if (this.filterStatus === 'PENDING') {
       list = list.filter(s => s.status === 'PENDING');
+    }
+    if (this.filterGroup === 'UNASSIGNED') {
+      list = list.filter(s => !s.groupId);
+    } else if (this.filterGroup && this.filterGroup !== 'ALL') {
+      list = list.filter(s => s.groupId === this.filterGroup);
     }
     if (this.searchQuery && this.searchQuery.trim()) {
       const q = this.searchQuery.trim().toLowerCase();
@@ -353,6 +381,10 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   setFilter(status: 'ALL' | 'COMPLETED' | 'PENDING'): void {
     this.filterStatus = status;
+  }
+
+  setGroupFilter(group: string): void {
+    this.filterGroup = group;
   }
 
   onToggleAllowAnswers(): void {
@@ -375,6 +407,128 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  onToggleGroups(): void {
+    if (this.configuringGroups || !this.classroom?.active) return;
+
+    const nextEnabled = !this.isGroupsEnabled;
+    this.configuringGroups = true;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.configureGroups(this.roomCode, this.teacherToken, nextEnabled, this.groupSizeInput).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.configuringGroups = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.configuringGroups = false;
+        this.errorMessage = err?.error?.message || 'Failed to update group settings.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onGroupSizeChange(newSize: number): void {
+    if (newSize < 2 || newSize > 20) return;
+    this.groupSizeInput = newSize;
+
+    if (this.isGroupsEnabled && !this.configuringGroups && this.classroom?.active) {
+      this.configuringGroups = true;
+      this.errorMessage = '';
+      this.cdr.markForCheck();
+
+      this.apiService.configureGroups(this.roomCode, this.teacherToken, true, newSize).subscribe({
+        next: (updated) => {
+          this.classroom = updated;
+          this.configuringGroups = false;
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.configuringGroups = false;
+          this.errorMessage = err?.error?.message || 'Failed to update group size.';
+          this.cdr.markForCheck();
+        }
+      });
+    }
+  }
+
+  onResetGroups(): void {
+    if (this.resettingGroups || !this.classroom?.active) return;
+
+    this.resettingGroups = true;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.resetGroups(this.roomCode, this.teacherToken).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.resettingGroups = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.resettingGroups = false;
+        this.errorMessage = err?.error?.message || 'Failed to reset groups.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onRemoveStudentFromGroup(groupId: string, studentId: string): void {
+    if (this.managingGroupMember || !this.classroom?.active) return;
+
+    this.managingGroupMember = true;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.removeStudentFromGroupByTeacher(this.roomCode, this.teacherToken, groupId, studentId).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.managingGroupMember = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.managingGroupMember = false;
+        this.errorMessage = err?.error?.message || 'Failed to remove student from group.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onAssignStudentToGroup(targetGroupId: string, studentId: string): void {
+    if (!studentId || this.managingGroupMember || !this.classroom?.active) return;
+
+    this.managingGroupMember = true;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.assignStudentToGroupByTeacher(this.roomCode, this.teacherToken, targetGroupId, studentId).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.managingGroupMember = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.managingGroupMember = false;
+        this.errorMessage = err?.error?.message || 'Failed to assign student to group.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onAddStudentToGroupFromSelect(targetGroupId: string, event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const studentId = select.value;
+    if (!studentId) return;
+
+    this.onAssignStudentToGroup(targetGroupId, studentId);
+    select.value = '';
+  }
+
+  getOtherGroupStudents(currentGroupId: string): StudentDto[] {
+    return this.students.filter(s => s.groupId && s.groupId !== currentGroupId);
   }
 
   onSelectStudent(student: StudentDto): void {

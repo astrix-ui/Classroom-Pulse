@@ -5,9 +5,9 @@ import { takeUntil } from 'rxjs/operators';
 import { ClassroomApiService } from '../../core/services/classroom-api.service';
 import { ClassroomSocketService } from '../../core/services/classroom-socket.service';
 import { SessionStorageService } from '../../core/services/session-storage.service';
-import { ClassroomSession } from '../../core/models/classroom.model';
+import { ClassroomSession, StudentGroupDto } from '../../core/models/classroom.model';
 import { ConnectionState, WebSocketEvent } from '../../core/models/websocket-event.model';
-import { CompletionStatus } from '../../core/models/student-status.model';
+import { CompletionStatus, StudentDto } from '../../core/models/student-status.model';
 
 @Component({
   selector: 'app-student-room',
@@ -31,6 +31,14 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
   answerText = '';
   pasteWarning = '';
   private pasteWarningTimeout: any = null;
+
+  // Group State
+  creatingGroup = false;
+  addingMemberId: string | null = null;
+  leavingGroup = false;
+  groupErrorMessage = '';
+  newGroupName = '';
+  private groupErrorTimeout: any = null;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -67,6 +75,9 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
     if (this.pasteWarningTimeout) {
       clearTimeout(this.pasteWarningTimeout);
     }
+    if (this.groupErrorTimeout) {
+      clearTimeout(this.groupErrorTimeout);
+    }
     this.socketService.disconnect();
   }
 
@@ -76,6 +87,47 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
 
   get isClassroomActive(): boolean {
     return this.classroom?.active !== false;
+  }
+
+  get groupsEnabled(): boolean {
+    return !!this.classroom?.groupsEnabled;
+  }
+
+  get maxGroupSize(): number {
+    return this.classroom?.maxGroupSize || 2;
+  }
+
+  get myGroup(): StudentGroupDto | null {
+    if (!this.classroom?.groups) return null;
+    return this.classroom.groups.find(g => g.members.some(m => m.studentId === this.studentId)) || null;
+  }
+
+  get isGroupCreator(): boolean {
+    return this.myGroup?.creatorStudentId === this.studentId;
+  }
+
+  get isGroupFull(): boolean {
+    if (!this.myGroup) return false;
+    return this.myGroup.members.length >= this.maxGroupSize;
+  }
+
+  studentSearchText = '';
+
+  get availableStudents(): StudentDto[] {
+    if (!this.classroom?.students) return [];
+    return this.classroom.students.filter(s => {
+      if (s.studentId === this.studentId) return false;
+      return !s.groupId;
+    });
+  }
+
+  get filteredAvailableStudents(): StudentDto[] {
+    const list = this.availableStudents;
+    if (!this.studentSearchText || !this.studentSearchText.trim()) {
+      return list;
+    }
+    const q = this.studentSearchText.trim().toLowerCase();
+    return list.filter(s => s.studentName.toLowerCase().includes(q));
   }
 
   get myStatus(): CompletionStatus {
@@ -252,6 +304,80 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
         this.router.navigate(['/']);
       }
     });
+  }
+
+  onCreateGroup(): void {
+    if (this.creatingGroup || !this.isClassroomActive || !this.groupsEnabled || this.myGroup) return;
+
+    this.creatingGroup = true;
+    this.groupErrorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.createGroup(this.roomCode, this.studentId, this.newGroupName.trim()).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.newGroupName = '';
+        this.creatingGroup = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.creatingGroup = false;
+        this.showGroupError(err?.error?.message || 'Failed to create group.');
+      }
+    });
+  }
+
+  onAddMember(targetStudent: StudentDto): void {
+    if (!this.myGroup || this.isGroupFull || this.addingMemberId || !this.isClassroomActive) return;
+
+    this.addingMemberId = targetStudent.studentId;
+    this.groupErrorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.addGroupMember(this.roomCode, this.myGroup.groupId, this.studentId, targetStudent.studentId).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.addingMemberId = null;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.addingMemberId = null;
+        const msg = err?.error?.message || `Student '${targetStudent.studentName}' has already been added to another group.`;
+        this.showGroupError(msg);
+      }
+    });
+  }
+
+  onLeaveGroup(): void {
+    if (!this.myGroup || this.leavingGroup || !this.isClassroomActive) return;
+
+    this.leavingGroup = true;
+    this.groupErrorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.leaveGroup(this.roomCode, this.myGroup.groupId, this.studentId).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.leavingGroup = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.leavingGroup = false;
+        this.showGroupError(err?.error?.message || 'Failed to leave group.');
+      }
+    });
+  }
+
+  private showGroupError(msg: string): void {
+    this.groupErrorMessage = msg;
+    if (this.groupErrorTimeout) {
+      clearTimeout(this.groupErrorTimeout);
+    }
+    this.groupErrorTimeout = setTimeout(() => {
+      this.groupErrorMessage = '';
+      this.cdr.markForCheck();
+    }, 4500);
+    this.cdr.markForCheck();
   }
 }
 

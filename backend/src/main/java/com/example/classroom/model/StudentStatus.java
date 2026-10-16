@@ -14,6 +14,8 @@ public class StudentStatus {
     private volatile Instant completedAt;
     private final Map<String, Instant> answeredQuestions = new ConcurrentHashMap<>();
     private final Map<String, String> questionAnswers = new ConcurrentHashMap<>();
+    private volatile String groupId;
+    private volatile String groupName;
 
     public StudentStatus(String studentId, String studentName, Instant joinedAt) {
         this.studentId = studentId;
@@ -101,6 +103,22 @@ public class StudentStatus {
             this.answeredQuestions.remove(questionId);
             this.questionAnswers.remove(questionId);
         }
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public synchronized void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public synchronized void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 }
 

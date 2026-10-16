@@ -45,7 +45,11 @@ describe('TeacherDashboardComponent', () => {
       'resetClassroom',
       'closeClassroom',
       'toggleAllowAnswers',
-      'health'
+      'health',
+      'configureGroups',
+      'resetGroups',
+      'removeStudentFromGroupByTeacher',
+      'assignStudentToGroupByTeacher'
     ]);
     apiService.getClassroom.and.returnValue(of(initialClassroom));
     apiService.deleteQuestion.and.returnValue(of(initialClassroom));
@@ -54,6 +58,17 @@ describe('TeacherDashboardComponent', () => {
       ...initialClassroom,
       allowAnswers: true
     }));
+    apiService.configureGroups.and.returnValue(of({
+      ...initialClassroom,
+      groupsEnabled: true,
+      maxGroupSize: 3
+    }));
+    apiService.resetGroups.and.returnValue(of({
+      ...initialClassroom,
+      groups: []
+    }));
+    apiService.removeStudentFromGroupByTeacher.and.returnValue(of(initialClassroom));
+    apiService.assignStudentToGroupByTeacher.and.returnValue(of(initialClassroom));
 
     const sessionSpy = jasmine.createSpyObj('SessionStorageService', ['getTeacherToken', 'removeTeacherToken']);
     sessionStorageService = sessionSpy;
@@ -192,6 +207,72 @@ describe('TeacherDashboardComponent', () => {
 
     component.sendKeepAlivePing();
     expect(apiService.health).not.toHaveBeenCalled();
+  });
+
+  it('should toggle groups when onToggleGroups is called', () => {
+    expect(component.isGroupsEnabled).toBeFalse();
+    component.onToggleGroups();
+    expect(apiService.configureGroups).toHaveBeenCalledWith('AB7KQ2', 'valid-teacher-token', true, 2);
+    expect(component.isGroupsEnabled).toBeTrue();
+  });
+
+  it('should update group size when onGroupSizeChange is called and groups are enabled', () => {
+    component.classroom = { ...initialClassroom, groupsEnabled: true, maxGroupSize: 2 };
+    component.onGroupSizeChange(4);
+    expect(component.groupSizeInput).toBe(4);
+    expect(apiService.configureGroups).toHaveBeenCalledWith('AB7KQ2', 'valid-teacher-token', true, 4);
+  });
+
+  it('should reset groups when onResetGroups is called', () => {
+    component.classroom = {
+      ...initialClassroom,
+      groupsEnabled: true,
+      groups: [
+        {
+          groupId: 'grp-1',
+          groupName: 'Group 1',
+          creatorStudentId: 's1',
+          creatorStudentName: 'Alice',
+          createdAt: new Date().toISOString(),
+          members: []
+        }
+      ]
+    };
+    component.onResetGroups();
+    expect(apiService.resetGroups).toHaveBeenCalledWith('AB7KQ2', 'valid-teacher-token');
+    expect(component.groups.length).toBe(0);
+  });
+
+  it('should filter students by group wise selection', () => {
+    component.classroom = {
+      ...initialClassroom,
+      students: [
+        { studentId: 's1', studentName: 'Alice', status: 'PENDING', connected: true, joinedAt: '', completedAt: null, groupId: 'g1', groupName: 'Alpha' },
+        { studentId: 's2', studentName: 'Bob', status: 'PENDING', connected: true, joinedAt: '', completedAt: null, groupId: 'g2', groupName: 'Beta' },
+        { studentId: 's3', studentName: 'Charlie', status: 'PENDING', connected: true, joinedAt: '', completedAt: null, groupId: null, groupName: null }
+      ]
+    };
+
+    component.filterGroup = 'ALL';
+    expect(component.filteredStudents.length).toBe(3);
+
+    component.filterGroup = 'UNASSIGNED';
+    expect(component.filteredStudents.length).toBe(1);
+    expect(component.filteredStudents[0].studentName).toBe('Charlie');
+
+    component.filterGroup = 'g1';
+    expect(component.filteredStudents.length).toBe(1);
+    expect(component.filteredStudents[0].studentName).toBe('Alice');
+  });
+
+  it('should allow teacher to remove student from group', () => {
+    component.onRemoveStudentFromGroup('grp-1', 's1');
+    expect(apiService.removeStudentFromGroupByTeacher).toHaveBeenCalledWith('AB7KQ2', 'valid-teacher-token', 'grp-1', 's1');
+  });
+
+  it('should allow teacher to assign student to group', () => {
+    component.onAssignStudentToGroup('grp-1', 's2');
+    expect(apiService.assignStudentToGroupByTeacher).toHaveBeenCalledWith('AB7KQ2', 'valid-teacher-token', 'grp-1', 's2');
   });
 });
 

@@ -9,6 +9,8 @@ export interface StudentDto {
   completedAt: string | null;
   answeredQuestions?: { [questionId: string]: string };
   answers?: { [questionId: string]: string };
+  groupId?: string | null;
+  groupName?: string | null;
 }
 
 export interface JoinStudentRequest {

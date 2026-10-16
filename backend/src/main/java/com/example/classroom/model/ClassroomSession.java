@@ -16,6 +16,9 @@ public class ClassroomSession {
     private volatile boolean active;
     private volatile Question currentQuestion;
     private volatile boolean allowAnswers = false;
+    private volatile boolean groupsEnabled = false;
+    private volatile int maxGroupSize = 2;
+    private final List<StudentGroup> groups = new CopyOnWriteArrayList<>();
     private final AtomicInteger sequenceCounter = new AtomicInteger(0);
 
     // Historical questions asked during the session
@@ -121,6 +124,62 @@ public class ClassroomSession {
 
     public void resetAllStudentsToPending() {
         students.values().forEach(StudentStatus::resetToPending);
+    }
+
+    public boolean isGroupsEnabled() {
+        return groupsEnabled;
+    }
+
+    public void setGroupsEnabled(boolean groupsEnabled) {
+        this.groupsEnabled = groupsEnabled;
+    }
+
+    public int getMaxGroupSize() {
+        return maxGroupSize;
+    }
+
+    public void setMaxGroupSize(int maxGroupSize) {
+        this.maxGroupSize = maxGroupSize;
+    }
+
+    public List<StudentGroup> getGroups() {
+        return Collections.unmodifiableList(groups);
+    }
+
+    public void addGroup(StudentGroup group) {
+        if (group != null) {
+            this.groups.add(group);
+        }
+    }
+
+    public boolean removeGroup(String groupId) {
+        if (groupId == null) return false;
+        return this.groups.removeIf(g -> groupId.equals(g.getGroupId()));
+    }
+
+    public void clearGroups() {
+        this.groups.clear();
+    }
+
+    public StudentGroup findGroupById(String groupId) {
+        if (groupId == null) return null;
+        return groups.stream()
+                .filter(g -> groupId.equals(g.getGroupId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public boolean isStudentInAnyGroup(String studentId) {
+        if (studentId == null) return false;
+        return groups.stream().anyMatch(g -> g.hasMember(studentId));
+    }
+
+    public StudentGroup findGroupForStudent(String studentId) {
+        if (studentId == null) return null;
+        return groups.stream()
+                .filter(g -> g.hasMember(studentId))
+                .findFirst()
+                .orElse(null);
     }
 }
 

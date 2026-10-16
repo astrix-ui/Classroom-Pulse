@@ -50,6 +50,170 @@
 
   <!-- Active Session Content -->
   <main *ngIf="isClassroomActive" class="room-content">
+    <!-- Group Formation Section (Shown when teacher enables groups) -->
+    <section *ngIf="groupsEnabled" class="card group-formation-card" aria-labelledby="group-section-title">
+      <!-- Section Header -->
+      <div class="group-section-header">
+        <div class="group-title-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <h2 id="group-section-title" class="group-section-title">Team Group</h2>
+          <span class="group-size-badge">Teams of {{ maxGroupSize }}</span>
+        </div>
+        <button 
+          *ngIf="myGroup" 
+          type="button" 
+          class="btn-leave-group" 
+          (click)="onLeaveGroup()" 
+          [disabled]="leavingGroup"
+          title="Leave this group">
+          {{ leavingGroup ? 'Leaving...' : 'Leave Group' }}
+        </button>
+      </div>
+
+      <!-- Group Error Banner -->
+      <div *ngIf="groupErrorMessage" class="group-error-alert" role="alert">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ groupErrorMessage }}</span>
+      </div>
+
+      <!-- State 1: Student is currently in a group -->
+      <div *ngIf="myGroup" class="my-group-container">
+        <div class="my-group-status-bar">
+          <div class="my-group-name-col">
+            <span class="my-group-label">Your Group</span>
+            <h3 class="my-group-heading">{{ myGroup.groupName }}</h3>
+          </div>
+          <span class="group-capacity-pill" [class.capacity-complete]="isGroupFull">
+            {{ myGroup.members.length }}/{{ maxGroupSize }} {{ isGroupFull ? 'Full' : 'Open' }}
+          </span>
+        </div>
+
+        <!-- Current Members List -->
+        <div class="group-members-list">
+          <h4 class="sub-heading">Members ({{ myGroup.members.length }}/{{ maxGroupSize }})</h4>
+          <div class="members-chip-row">
+            <div *ngFor="let m of myGroup.members" class="student-member-chip" [class.current-user-chip]="m.studentId === studentId">
+              <span class="chip-avatar">{{ m.studentName.charAt(0).toUpperCase() }}</span>
+              <span class="chip-name">{{ m.studentName }}</span>
+              <span *ngIf="m.studentId === myGroup.creatorStudentId" class="creator-tag">Creator</span>
+              <span *ngIf="m.studentId === studentId" class="you-tag">You</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Members from Room (if not full) -->
+        <div *ngIf="!isGroupFull" class="add-members-section">
+          <div class="add-header-row">
+            <h4 class="sub-heading">Add Teammates from Room</h4>
+            <span class="spots-left-note">{{ maxGroupSize - myGroup.members.length }} spot(s) remaining</span>
+          </div>
+          <p class="add-hint-text">Choose an available student below to immediately add them to your group:</p>
+
+          <!-- Search filter if more than 3 students -->
+          <div *ngIf="availableStudents.length > 3" class="member-search-box">
+            <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              class="member-search-input" 
+              placeholder="Search student name..." 
+              [(ngModel)]="studentSearchText" 
+              [ngModelOptions]="{standalone: true}" />
+            <button 
+              *ngIf="studentSearchText" 
+              type="button" 
+              class="clear-search-btn" 
+              (click)="studentSearchText = ''"
+              title="Clear search">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div *ngIf="availableStudents.length === 0" class="no-available-students">
+            <p>No unassigned students available in the room right now.</p>
+          </div>
+
+          <div *ngIf="availableStudents.length > 0 && filteredAvailableStudents.length === 0" class="no-available-students">
+            <p>No unassigned students match "{{ studentSearchText }}".</p>
+          </div>
+
+          <div *ngIf="filteredAvailableStudents.length > 0" class="available-students-scroll-wrap">
+            <div class="available-students-list" role="region" aria-label="Scrollable list of unassigned students">
+              <div *ngFor="let s of filteredAvailableStudents" class="available-student-row">
+                <div class="avail-student-info">
+                  <span class="avail-avatar">{{ s.studentName.charAt(0).toUpperCase() }}</span>
+                  <span class="avail-name" title="{{ s.studentName }}">{{ s.studentName }}</span>
+                </div>
+                <button 
+                  type="button" 
+                  class="btn btn-sm btn-primary add-member-btn" 
+                  (click)="onAddMember(s)"
+                  [disabled]="addingMemberId === s.studentId">
+                  <span *ngIf="addingMemberId === s.studentId">Adding...</span>
+                  <span *ngIf="addingMemberId !== s.studentId">+ Add</span>
+                </button>
+              </div>
+            </div>
+            <div *ngIf="filteredAvailableStudents.length > 3" class="scroll-hint-bar">
+              <span>Scroll to view all {{ filteredAvailableStudents.length }} students</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group Full Banner -->
+        <div *ngIf="isGroupFull" class="group-full-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Your group is complete with {{ maxGroupSize }} members.</span>
+        </div>
+      </div>
+
+      <!-- State 2: Student is NOT in a group -->
+      <div *ngIf="!myGroup" class="unassigned-group-container">
+        <div class="prompt-box">
+          <div class="prompt-header-row">
+            <span class="prompt-icon-pill">Action Required</span>
+            <p class="prompt-title">Teacher enabled groups of {{ maxGroupSize }}</p>
+          </div>
+          <p class="prompt-desc">Create your own group and choose teammates from the room, or wait for another student to add you.</p>
+          
+          <div class="create-group-form">
+            <input 
+              type="text" 
+              class="create-group-input" 
+              [(ngModel)]="newGroupName" 
+              [ngModelOptions]="{standalone: true}"
+              placeholder="Group name (optional, e.g. Team Alpha)"
+              maxlength="50"
+              (keydown.enter)="onCreateGroup()">
+            <button 
+              type="button" 
+              class="btn btn-primary create-group-btn" 
+              (click)="onCreateGroup()" 
+              [disabled]="creatingGroup">
+              <span *ngIf="creatingGroup">Creating...</span>
+              <span *ngIf="!creatingGroup">Create Group</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Question Card -->
     <section class="card question-card" aria-labelledby="question-heading">
       <div class="card-top-bar">
@@ -89,12 +253,19 @@
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </div>
-        <h2 class="confirmation-title">You're All Done</h2>
-        <p class="confirmation-text">Your teacher has been notified. Sit tight until the next question is published.</p>
+        <h2 class="confirmation-title">{{ myGroup ? 'Team Response Submitted' : "You're All Done" }}</h2>
+        <p class="confirmation-text">
+          <ng-container *ngIf="myGroup">
+            Your team (<strong>{{ myGroup.groupName }}</strong>) has submitted the response. Sit tight until the next question is published.
+          </ng-container>
+          <ng-container *ngIf="!myGroup">
+            Your teacher has been notified. Sit tight until the next question is published.
+          </ng-container>
+        </p>
 
-        <!-- Display submitted answer preview if student typed one -->
+        <!-- Display submitted answer preview if student or group submitted one -->
         <div *ngIf="mySubmittedAnswer" class="student-submitted-preview">
-          <span class="preview-label">Your Submitted Answer:</span>
+          <span class="preview-label">{{ myGroup ? 'Team Submitted Answer:' : 'Your Submitted Answer:' }}</span>
           <p class="preview-text">{{ mySubmittedAnswer }}</p>
         </div>
       </div>
@@ -151,10 +322,12 @@
         </button>
 
         <p class="touch-hint" *ngIf="requiresWrittenAnswer">
-          Type your answer above, then tap I'M DONE to submit.
+          <span *ngIf="myGroup">Any group member can submit the answer on behalf of the whole group.</span>
+          <span *ngIf="!myGroup">Type your answer above, then tap I'M DONE to submit.</span>
         </p>
         <p class="touch-hint" *ngIf="!requiresWrittenAnswer">
-          Tap the button once you have finished thinking through or solving this question.
+          <span *ngIf="myGroup">Any group member can tap I'M DONE on behalf of the whole group.</span>
+          <span *ngIf="!myGroup">Tap the button once you have finished thinking through or solving this question.</span>
         </p>
       </div>
 

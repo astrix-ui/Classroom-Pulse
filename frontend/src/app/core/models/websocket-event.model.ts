@@ -10,7 +10,8 @@ export type ClassroomEventType =
   | 'CLASSROOM_RESET'
   | 'CLASSROOM_CLOSED'
   | 'CLASSROOM_STATE_UPDATED'
-  | 'ALLOW_ANSWERS_CHANGED';
+  | 'ALLOW_ANSWERS_CHANGED'
+  | 'GROUPS_UPDATED';
 
 export interface WebSocketEvent<T = ClassroomSession> {
   type: ClassroomEventType;

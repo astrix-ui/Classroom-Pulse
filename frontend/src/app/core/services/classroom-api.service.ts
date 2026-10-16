@@ -92,5 +92,56 @@ export class ClassroomApiService {
   health(): Observable<{ status: string }> {
     return this.http.get<{ status: string }>(`${this.baseUrl}/health`);
   }
+
+  configureGroups(roomCode: string, teacherToken: string, enabled: boolean, maxGroupSize: number): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.put<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups/settings`, {
+      enabled,
+      maxGroupSize
+    }, { headers });
+  }
+
+  resetGroups(roomCode: string, teacherToken: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups/reset`, {}, { headers });
+  }
+
+  createGroup(roomCode: string, studentId: string, groupName?: string): Observable<ClassroomSession> {
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups`, {
+      studentId,
+      groupName
+    });
+  }
+
+  addGroupMember(roomCode: string, groupId: string, requestingStudentId: string, targetStudentId: string): Observable<ClassroomSession> {
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups/${groupId}/members`, {
+      requestingStudentId,
+      targetStudentId
+    });
+  }
+
+  leaveGroup(roomCode: string, groupId: string, studentId: string): Observable<ClassroomSession> {
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups/${groupId}/members/${studentId}/leave`, {});
+  }
+
+  removeStudentFromGroupByTeacher(roomCode: string, teacherToken: string, groupId: string, studentId: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.delete<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups/${groupId}/members/${studentId}`, { headers });
+  }
+
+  assignStudentToGroupByTeacher(roomCode: string, teacherToken: string, groupId: string, studentId: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups/${groupId}/assign`, {
+      studentId
+    }, { headers });
+  }
 }
 

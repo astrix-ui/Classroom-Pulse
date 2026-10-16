@@ -330,5 +330,161 @@ class ClassroomServiceTest {
         assertTrue(dana.getAnsweredQuestions().containsKey(q2.getQuestionId()));
         assertFalse(dana.getAnsweredQuestions().containsKey(q3.getQuestionId()));
     }
+
+    @Test
+    @DisplayName("Joining room requires a unique student name")
+    void testUniqueStudentName() {
+        CreateClassroomResponse room = service.createClassroom();
+        service.joinStudent(room.getRoomCode(), "Alice");
+
+        assertThrows(DuplicateStudentException.class, () ->
+            service.joinStudent(room.getRoomCode(), "Alice")
+        );
+        assertThrows(DuplicateStudentException.class, () ->
+            service.joinStudent(room.getRoomCode(), " alice ")
+        );
+    }
+
+    @Test
+    @DisplayName("Group formation configuration, creation, member addition, and conflict prevention")
+    void testGroupFormationAndConflictPrevention() {
+        CreateClassroomResponse room = service.createClassroom();
+        JoinStudentResponse s1 = service.joinStudent(room.getRoomCode(), "Alice");
+        JoinStudentResponse s2 = service.joinStudent(room.getRoomCode(), "Bob");
+        JoinStudentResponse s3 = service.joinStudent(room.getRoomCode(), "Charlie");
+
+        // Teacher configures group size = 2
+        ClassroomStateResponse configured = service.configureGroups(room.getRoomCode(), room.getTeacherToken(), true, 2);
+        assertTrue(configured.isGroupsEnabled());
+        assertEquals(2, configured.getMaxGroupSize());
+
+        // Alice creates group "Team Rocket"
+        ClassroomStateResponse groupState = service.createGroup(room.getRoomCode(), s1.getStudentId(), "Team Rocket");
+        assertEquals(1, groupState.getGroups().size());
+        StudentGroupDto group = groupState.getGroups().get(0);
+        assertEquals("Team Rocket", group.getGroupName());
+        assertEquals(1, group.getMembers().size());
+        assertEquals("Alice", group.getMembers().get(0).getStudentName());
+
+        // Alice adds Bob
+        ClassroomStateResponse addedState = service.addMemberToGroup(room.getRoomCode(), group.getGroupId(), s1.getStudentId(), s2.getStudentId());
+        StudentGroupDto updatedGroup = addedState.getGroups().get(0);
+        assertEquals(2, updatedGroup.getMembers().size());
+
+        // Charlie creates another group
+        ClassroomStateResponse charlieGroupState = service.createGroup(room.getRoomCode(), s3.getStudentId(), "Team Galactic");
+        assertEquals(2, charlieGroupState.getGroups().size());
+        StudentGroupDto charlieGroup = charlieGroupState.getGroups().stream()
+                .filter(g -> g.getGroupName().equals("Team Galactic")).findFirst().orElseThrow();
+
+        // Charlie tries to add Bob (who is already in Alice's group) -> must fail with GroupConflictException!
+        assertThrows(GroupConflictException.class, () ->
+            service.addMemberToGroup(room.getRoomCode(), charlieGroup.getGroupId(), s3.getStudentId(), s2.getStudentId())
+        );
+
+        // Alice tries to add Charlie to Team Rocket -> fails because group size is 2 (already full)
+        assertThrows(IllegalStateException.class, () ->
+            service.addMemberToGroup(room.getRoomCode(), group.getGroupId(), s1.getStudentId(), s3.getStudentId())
+        );
+
+        // Bob leaves Alice's group
+        ClassroomStateResponse leftState = service.leaveGroup(room.getRoomCode(), group.getGroupId(), s2.getStudentId());
+        StudentGroupDto groupAfterLeave = leftState.getGroups().stream()
+                .filter(g -> g.getGroupId().equals(group.getGroupId())).findFirst().orElseThrow();
+        assertEquals(1, groupAfterLeave.getMembers().size());
+
+        // Now Charlie CAN add Bob to Team Galactic!
+        ClassroomStateResponse charlieAddedBobState = service.addMemberToGroup(
+                room.getRoomCode(), charlieGroup.getGroupId(), s3.getStudentId(), s2.getStudentId());
+        StudentGroupDto charlieGroupWithBob = charlieAddedBobState.getGroups().stream()
+                .filter(g -> g.getGroupName().equals("Team Galactic")).findFirst().orElseThrow();
+        assertEquals(2, charlieGroupWithBob.getMembers().size());
+    }
+
+    @Test
+    @DisplayName("Teacher can remove student from group and move/assign student to another group")
+    void testTeacherGroupManagement() {
+        CreateClassroomResponse room = service.createClassroom();
+        service.configureGroups(room.getRoomCode(), room.getTeacherToken(), true, 3);
+
+        JoinStudentResponse s1 = service.joinStudent(room.getRoomCode(), "Alice");
+        JoinStudentResponse s2 = service.joinStudent(room.getRoomCode(), "Bob");
+        JoinStudentResponse s3 = service.joinStudent(room.getRoomCode(), "Charlie");
+
+        // Alice creates Group 1
+        ClassroomStateResponse gState1 = service.createGroup(room.getRoomCode(), s1.getStudentId(), "Group 1");
+        String g1Id = gState1.getGroups().get(0).getGroupId();
+
+        // Charlie creates Group 2
+        ClassroomStateResponse gState2 = service.createGroup(room.getRoomCode(), s3.getStudentId(), "Group 2");
+        String g2Id = gState2.getGroups().stream().filter(g -> g.getGroupName().equals("Group 2")).findFirst().orElseThrow().getGroupId();
+
+        // Teacher assigns unassigned Bob to Group 1
+        ClassroomStateResponse assignedBobState = service.assignStudentToGroupByTeacher(
+                room.getRoomCode(), room.getTeacherToken(), g1Id, s2.getStudentId());
+        StudentGroupDto g1WithBob = assignedBobState.getGroups().stream().filter(g -> g.getGroupId().equals(g1Id)).findFirst().orElseThrow();
+        assertEquals(2, g1WithBob.getMembers().size());
+
+        // Teacher moves Bob from Group 1 to Group 2
+        ClassroomStateResponse movedBobState = service.assignStudentToGroupByTeacher(
+                room.getRoomCode(), room.getTeacherToken(), g2Id, s2.getStudentId());
+        StudentGroupDto g1AfterMove = movedBobState.getGroups().stream().filter(g -> g.getGroupId().equals(g1Id)).findFirst().orElseThrow();
+        StudentGroupDto g2AfterMove = movedBobState.getGroups().stream().filter(g -> g.getGroupId().equals(g2Id)).findFirst().orElseThrow();
+        assertEquals(1, g1AfterMove.getMembers().size());
+        assertEquals(2, g2AfterMove.getMembers().size());
+
+        // Teacher removes Bob from Group 2 (back to unassigned)
+        ClassroomStateResponse removedBobState = service.removeStudentFromGroupByTeacher(
+                room.getRoomCode(), room.getTeacherToken(), g2Id, s2.getStudentId());
+        StudentGroupDto g2AfterRemove = removedBobState.getGroups().stream().filter(g -> g.getGroupId().equals(g2Id)).findFirst().orElseThrow();
+        assertEquals(1, g2AfterRemove.getMembers().size());
+        StudentDto bobDto = removedBobState.getStudents().stream().filter(s -> s.getStudentId().equals(s2.getStudentId())).findFirst().orElseThrow();
+        assertNull(bobDto.getGroupId());
+    }
+
+    @Test
+    @DisplayName("When one member of a group submits answer, all group members are marked completed with the same answer")
+    void testGroupSubmissionSubmitsForAllMembers() {
+        CreateClassroomResponse room = service.createClassroom();
+        service.configureGroups(room.getRoomCode(), room.getTeacherToken(), true, 3);
+        service.toggleAllowAnswers(room.getRoomCode(), room.getTeacherToken(), true);
+
+        QuestionDto question = service.publishQuestion(room.getRoomCode(), room.getTeacherToken(), "What is an interface?");
+
+        JoinStudentResponse s1 = service.joinStudent(room.getRoomCode(), "Alice");
+        JoinStudentResponse s2 = service.joinStudent(room.getRoomCode(), "Bob");
+        JoinStudentResponse s3 = service.joinStudent(room.getRoomCode(), "Charlie");
+
+        // Alice creates Group Alpha and adds Bob
+        ClassroomStateResponse gState = service.createGroup(room.getRoomCode(), s1.getStudentId(), "Alpha");
+        String groupId = gState.getGroups().get(0).getGroupId();
+        service.addMemberToGroup(room.getRoomCode(), groupId, s1.getStudentId(), s2.getStudentId());
+
+        // Charlie remains unassigned
+        ClassroomStateResponse beforeSubmit = service.getClassroomState(room.getRoomCode());
+        assertEquals(0, beforeSubmit.getCompletedCount());
+        assertEquals(3, beforeSubmit.getPendingCount());
+
+        // Alice submits the answer for her team
+        String teamAnswer = "An interface is a contract that defines abstract methods.";
+        ClassroomStateResponse afterAliceSubmit = service.completeQuestion(
+                room.getRoomCode(), s1.getStudentId(), question.getQuestionId(), teamAnswer);
+
+        // Both Alice and Bob should now be COMPLETED with the exact same answer
+        assertEquals(2, afterAliceSubmit.getCompletedCount());
+        assertEquals(1, afterAliceSubmit.getPendingCount());
+
+        StudentDto aliceDto = afterAliceSubmit.getStudents().stream().filter(s -> s.getStudentId().equals(s1.getStudentId())).findFirst().orElseThrow();
+        StudentDto bobDto = afterAliceSubmit.getStudents().stream().filter(s -> s.getStudentId().equals(s2.getStudentId())).findFirst().orElseThrow();
+        StudentDto charlieDto = afterAliceSubmit.getStudents().stream().filter(s -> s.getStudentId().equals(s3.getStudentId())).findFirst().orElseThrow();
+
+        assertEquals(CompletionStatus.COMPLETED, aliceDto.getStatus());
+        assertEquals(CompletionStatus.COMPLETED, bobDto.getStatus());
+        assertEquals(CompletionStatus.PENDING, charlieDto.getStatus());
+
+        assertEquals(teamAnswer, aliceDto.getAnswers().get(question.getQuestionId()));
+        assertEquals(teamAnswer, bobDto.getAnswers().get(question.getQuestionId()));
+        assertNull(charlieDto.getAnswers().get(question.getQuestionId()));
+    }
 }
 

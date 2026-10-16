@@ -16,6 +16,8 @@ public class StudentDto {
     private Instant completedAt;
     private Map<String, Instant> answeredQuestions = new HashMap<>();
     private Map<String, String> answers = new HashMap<>();
+    private String groupId;
+    private String groupName;
 
     public StudentDto() {}
 
@@ -41,6 +43,8 @@ public class StudentDto {
         );
         dto.setAnsweredQuestions(new HashMap<>(student.getAnsweredQuestions()));
         dto.setAnswers(new HashMap<>(student.getQuestionAnswers()));
+        dto.setGroupId(student.getGroupId());
+        dto.setGroupName(student.getGroupName());
         return dto;
     }
 
@@ -106,6 +110,22 @@ public class StudentDto {
 
     public void setAnswers(Map<String, String> answers) {
         this.answers = answers != null ? answers : new HashMap<>();
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 }
 
