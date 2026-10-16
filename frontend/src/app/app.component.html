@@ -1,1 +1,62 @@
 <router-outlet></router-outlet>
+
+<!-- Cold Start Server Warm-up Overlay (Render Free Tier) -->
+<div *ngIf="showOverlay" class="server-warmup-overlay" [class.fade-out]="isFadingOut" role="status" aria-live="polite">
+  <div class="warmup-card">
+    <!-- Server Pulse Visual -->
+    <div class="server-visual">
+      <div class="pulse-ring"></div>
+      <div class="server-icon-box">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+          <line x1="6" y1="6" x2="6.01" y2="6"></line>
+          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+        </svg>
+      </div>
+    </div>
+
+    <!-- State: WAKING_UP -->
+    <ng-container *ngIf="status === 'WAKING_UP'">
+      <h2 class="warmup-title">Connecting to Cloud Server</h2>
+      <p class="warmup-desc">
+        The classroom backend is hosted on a free cloud tier and is waking up from idle sleep.
+        Your session will be ready in a moment.
+      </p>
+
+      <!-- Progress Track -->
+      <div class="warmup-progress-wrap">
+        <div class="warmup-progress-bar">
+          <div class="warmup-progress-shimmer"></div>
+        </div>
+      </div>
+
+      <div class="warmup-status-meta">
+        <span class="pulse-dot"></span>
+        <span class="meta-text">Starting server container &bull; {{ elapsedSeconds }}s elapsed</span>
+      </div>
+    </ng-container>
+
+    <!-- State: READY -->
+    <ng-container *ngIf="status === 'READY'">
+      <div class="success-icon-box">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h2 class="warmup-title">Server Ready</h2>
+      <p class="warmup-desc">Connected! Loading application...</p>
+    </ng-container>
+
+    <!-- State: ERROR / TIMEOUT -->
+    <ng-container *ngIf="status === 'ERROR'">
+      <h2 class="warmup-title">Connection Delayed</h2>
+      <p class="warmup-desc">
+        The cloud server is taking longer than usual to wake up. Free instances occasionally require a retry.
+      </p>
+      <button type="button" class="btn btn-primary retry-btn" (click)="onRetry()">
+        Retry Connection
+      </button>
+    </ng-container>
+  </div>
+</div>

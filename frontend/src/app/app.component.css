@@ -1,0 +1,197 @@
+.server-warmup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: rgba(250, 250, 250, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeInOverlay 0.25s ease-out forwards;
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+}
+
+.server-warmup-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.warmup-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 36px 32px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.14);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: scaleInCard 0.3s var(--ease-spring) forwards;
+}
+
+/* Server visual with subtle spring pulse */
+.server-visual {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.server-icon-box {
+  position: relative;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-focus);
+  opacity: 0.6;
+  animation: ringPulse 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+.success-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--bg-subtle);
+  border: 1.5px solid var(--status-completed);
+  color: var(--status-completed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  animation: scaleInCard 0.25s var(--ease-spring);
+}
+
+.warmup-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.warmup-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: 22px;
+  max-width: 360px;
+}
+
+/* Progress Bar with Moving Shimmer */
+.warmup-progress-wrap {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.warmup-progress-bar {
+  position: relative;
+  height: 6px;
+  width: 100%;
+  background-color: var(--border-default);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.warmup-progress-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    rgba(23, 23, 23, 0.2) 0%,
+    rgba(23, 23, 23, 0.9) 50%,
+    rgba(23, 23, 23, 0.2) 100%
+  );
+  border-radius: var(--radius-pill);
+  animation: progressSlide 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Status meta info */
+.warmup-status-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--status-completed);
+  animation: dotBlink 1.4s ease-in-out infinite;
+}
+
+.meta-text {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.retry-btn {
+  margin-top: 8px;
+  padding: 8px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleInCard {
+  0% { transform: scale(0.96) translateY(4px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes ringPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@keyframes progressSlide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+@keyframes dotBlink {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ring,
+  .warmup-progress-shimmer,
+  .pulse-dot,
+  .warmup-card {
+    animation: none;
+  }
+}
