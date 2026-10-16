@@ -1,14 +1,15 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, timer, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { ClassroomApiService } from '../../core/services/classroom-api.service';
 import { ClassroomSocketService } from '../../core/services/classroom-socket.service';
 import { SessionStorageService } from '../../core/services/session-storage.service';
 import { ClassroomSession } from '../../core/models/classroom.model';
 import { ConnectionState, WebSocketEvent } from '../../core/models/websocket-event.model';
 import { StudentDto } from '../../core/models/student-status.model';
+import { QuestionDto } from '../../core/models/question.model';
 
 @Component({
   selector: 'app-teacher-dashboard',
@@ -42,6 +43,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   // Session Ended State
   sessionEnded = false;
 
+  // Allow Answers State
+  togglingAllowAnswers = false;
+
+  // Student Inspection Modal State
+  selectedStudent: StudentDto | null = null;
+
   questionForm = new FormGroup({
     questionText: new FormControl('', [
       Validators.required,
@@ -71,6 +78,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
     this.loadClassroom();
     this.initWebSocket();
+    this.initKeepAlive();
   }
 
   ngOnDestroy(): void {
@@ -91,6 +99,14 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     return !!this.classroom?.currentQuestion;
   }
 
+  get isAllowAnswers(): boolean {
+    return !!this.classroom?.allowAnswers;
+  }
+
+  get allQuestions(): QuestionDto[] {
+    return this.classroom?.questions || [];
+  }
+
   get students(): StudentDto[] {
     return this.classroom?.students || [];
   }
@@ -104,6 +120,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         this.classroom = data;
         if (data && !data.active) {
           this.sessionEnded = true;
+        }
+        if (this.selectedStudent && data?.students) {
+          const updatedStudent = data.students.find(s => s.studentId === this.selectedStudent!.studentId);
+          if (updatedStudent) {
+            this.selectedStudent = updatedStudent;
+          }
         }
         this.loading = false;
         this.cdr.markForCheck();
@@ -131,6 +153,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       .subscribe((event: WebSocketEvent<ClassroomSession>) => {
         if (event && event.payload) {
           this.classroom = event.payload;
+          if (this.selectedStudent && this.classroom.students) {
+            const updatedStudent = this.classroom.students.find(s => s.studentId === this.selectedStudent!.studentId);
+            if (updatedStudent) {
+              this.selectedStudent = updatedStudent;
+            }
+          }
           this.cdr.markForCheck();
         }
       });
@@ -327,7 +355,90 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     this.filterStatus = status;
   }
 
+  onToggleAllowAnswers(): void {
+    if (this.togglingAllowAnswers || !this.classroom?.active) return;
+
+    const nextState = !this.isAllowAnswers;
+    this.togglingAllowAnswers = true;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.toggleAllowAnswers(this.roomCode, this.teacherToken, nextState).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.togglingAllowAnswers = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.togglingAllowAnswers = false;
+        this.errorMessage = err?.error?.message || 'Failed to update answer permissions.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onSelectStudent(student: StudentDto): void {
+    this.selectedStudent = student;
+    this.cdr.markForCheck();
+  }
+
+  onCloseStudentModal(): void {
+    this.selectedStudent = null;
+    this.cdr.markForCheck();
+  }
+
+  isQuestionAnsweredByStudent(student: StudentDto | null, questionId: string): boolean {
+    if (!student || !student.answeredQuestions) return false;
+    return !!student.answeredQuestions[questionId];
+  }
+
+  getStudentAnsweredAt(student: StudentDto | null, questionId: string): string | null {
+    if (!student || !student.answeredQuestions) return null;
+    return student.answeredQuestions[questionId] || null;
+  }
+
+  getStudentAnswerText(student: StudentDto | null, questionId: string): string | null {
+    if (!student || !student.answers) return null;
+    return student.answers[questionId] || null;
+  }
+
+  getStudentAnsweredCount(student: StudentDto | null): number {
+    if (!student || !student.answeredQuestions) return 0;
+    return Object.keys(student.answeredQuestions).length;
+  }
+
+  getQuestionCompletionCount(questionId: string): number {
+    if (!this.classroom || !this.classroom.students) return 0;
+    return this.classroom.students.filter(s => s.answeredQuestions && s.answeredQuestions[questionId]).length;
+  }
+
   trackByStudentId(index: number, student: StudentDto): string {
     return student.studentId;
+  }
+
+  trackByQuestionId(index: number, question: QuestionDto): string {
+    return question.questionId;
+  }
+
+  /**
+   * Periodically pings the backend every 60 seconds from the teacher role
+   * to keep free-tier instances (e.g. Render) awake while students are writing answers.
+   */
+  private initKeepAlive(): void {
+    timer(60000, 60000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.sendKeepAlivePing();
+      });
+  }
+
+  sendKeepAlivePing(): void {
+    if (!this.classroom?.active || this.sessionEnded) return;
+
+    this.apiService.health()
+      .pipe(
+        catchError(() => of({ status: 'DOWN' }))
+      )
+      .subscribe();
   }
 }

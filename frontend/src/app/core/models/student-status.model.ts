@@ -7,6 +7,8 @@ export interface StudentDto {
   connected: boolean;
   joinedAt: string;
   completedAt: string | null;
+  answeredQuestions?: { [questionId: string]: string };
+  answers?: { [questionId: string]: string };
 }
 
 export interface JoinStudentRequest {

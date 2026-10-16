@@ -11,5 +11,6 @@ export interface PublishQuestionRequest {
 
 export interface CompleteQuestionRequest {
   questionId: string;
+  answerText?: string;
 }
 

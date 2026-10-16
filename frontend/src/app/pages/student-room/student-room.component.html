@@ -81,7 +81,7 @@
       </div>
     </section>
 
-    <!-- Action Section with Large COMPLETED Button -->
+    <!-- Action Section with COMPLETED Button and optional Written Answer Input -->
     <section class="action-card card" aria-label="Student Response Action">
       <div *ngIf="isCompleted" class="completed-confirmation" aria-live="polite">
         <div class="check-circle">
@@ -91,23 +91,83 @@
         </div>
         <h2 class="confirmation-title">You're All Done</h2>
         <p class="confirmation-text">Your teacher has been notified. Sit tight until the next question is published.</p>
+
+        <!-- Display submitted answer preview if student typed one -->
+        <div *ngIf="mySubmittedAnswer" class="student-submitted-preview">
+          <span class="preview-label">Your Submitted Answer:</span>
+          <p class="preview-text">{{ mySubmittedAnswer }}</p>
+        </div>
       </div>
 
-      <button 
-        *ngIf="!isCompleted"
-        type="button" 
-        class="huge-complete-btn"
-        [disabled]="!canComplete"
-        (click)="onMarkCompleted()"
-        [attr.aria-label]="currentQuestion ? 'Mark question as completed' : 'Waiting for question'">
-        <span *ngIf="submittingCompletion">Saving...</span>
-        <span *ngIf="!submittingCompletion && currentQuestion">I'M DONE</span>
-        <span *ngIf="!submittingCompletion && !currentQuestion">WAITING FOR QUESTION</span>
-      </button>
+      <!-- If not completed and question is active -->
+      <div *ngIf="!isCompleted && currentQuestion" class="active-response-container">
+        <!-- Written Answer Textarea (Shown only when requiresWrittenAnswer is true) -->
+        <div *ngIf="requiresWrittenAnswer" class="student-answer-wrap">
+          <div class="answer-header-row">
+            <label for="studentAnswerInput" class="answer-input-label">Type Your Answer</label>
+            <span class="char-pill" [class.char-pill-warn]="answerText.length > 900">{{ answerText.length }}/1000</span>
+          </div>
 
-      <p class="touch-hint" *ngIf="currentQuestion && !isCompleted">
-        Tap the button once you have finished thinking through or solving this question.
-      </p>
+          <textarea 
+            id="studentAnswerInput"
+            class="student-answer-textarea"
+            rows="4"
+            [(ngModel)]="answerText"
+            [ngModelOptions]="{standalone: true}"
+            maxlength="1000"
+            (paste)="onPreventPaste($event)"
+            (copy)="onPreventCopy($event)"
+            (cut)="onPreventCopy($event)"
+            (drop)="onPreventDrop($event)"
+            placeholder="Type your answer here (copy-paste is disabled)..."
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            [disabled]="submittingCompletion">
+          </textarea>
+
+          <!-- Copy-paste disabled warning alert -->
+          <div *ngIf="pasteWarning" class="paste-warning-banner" role="alert">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>{{ pasteWarning }}</span>
+          </div>
+
+          <p class="type-hint">Copy-paste is disabled. Type your answer manually before pressing I'M DONE.</p>
+        </div>
+
+        <button 
+          type="button" 
+          class="huge-complete-btn"
+          [disabled]="!canComplete"
+          (click)="onMarkCompleted()"
+          [attr.aria-label]="requiresWrittenAnswer ? 'Submit written answer' : 'Mark question completed'">
+          <span *ngIf="submittingCompletion">Saving...</span>
+          <span *ngIf="!submittingCompletion">I'M DONE</span>
+        </button>
+
+        <p class="touch-hint" *ngIf="requiresWrittenAnswer">
+          Type your answer above, then tap I'M DONE to submit.
+        </p>
+        <p class="touch-hint" *ngIf="!requiresWrittenAnswer">
+          Tap the button once you have finished thinking through or solving this question.
+        </p>
+      </div>
+
+      <!-- If waiting for question -->
+      <div *ngIf="!isCompleted && !currentQuestion" class="waiting-action-wrap">
+        <button 
+          type="button" 
+          class="huge-complete-btn" 
+          [disabled]="true"
+          aria-label="Waiting for question">
+          <span>WAITING FOR QUESTION</span>
+        </button>
+      </div>
     </section>
   </main>
 </div>

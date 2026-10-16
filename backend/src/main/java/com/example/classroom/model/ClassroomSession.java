@@ -3,8 +3,10 @@ package com.example.classroom.model;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClassroomSession {
@@ -13,7 +15,11 @@ public class ClassroomSession {
     private final Instant createdAt;
     private volatile boolean active;
     private volatile Question currentQuestion;
+    private volatile boolean allowAnswers = false;
     private final AtomicInteger sequenceCounter = new AtomicInteger(0);
+
+    // Historical questions asked during the session
+    private final List<Question> questionHistory = new CopyOnWriteArrayList<>();
 
     // Keyed by studentId
     private final Map<String, StudentStatus> students = new ConcurrentHashMap<>();
@@ -24,6 +30,7 @@ public class ClassroomSession {
         this.createdAt = createdAt;
         this.active = true;
         this.currentQuestion = null;
+        this.allowAnswers = false;
     }
 
     public String getRoomCode() {
@@ -77,6 +84,39 @@ public class ClassroomSession {
 
     public StudentStatus removeStudent(String studentId) {
         return students.remove(studentId);
+    }
+
+    public boolean isAllowAnswers() {
+        return allowAnswers;
+    }
+
+    public void setAllowAnswers(boolean allowAnswers) {
+        this.allowAnswers = allowAnswers;
+    }
+
+    public List<Question> getQuestionHistory() {
+        return Collections.unmodifiableList(questionHistory);
+    }
+
+    public void addQuestionToHistory(Question question) {
+        if (question != null) {
+            this.questionHistory.add(question);
+        }
+    }
+
+    public void updateQuestionInHistory(Question updated) {
+        if (updated == null) return;
+        for (int i = 0; i < questionHistory.size(); i++) {
+            if (questionHistory.get(i).getQuestionId().equals(updated.getQuestionId())) {
+                questionHistory.set(i, updated);
+                break;
+            }
+        }
+    }
+
+    public void removeQuestionFromHistory(String questionId) {
+        if (questionId == null) return;
+        questionHistory.removeIf(q -> q.getQuestionId().equals(questionId));
     }
 
     public void resetAllStudentsToPending() {

@@ -4,6 +4,8 @@ import com.example.classroom.model.CompletionStatus;
 import com.example.classroom.model.StudentStatus;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StudentDto {
     private String studentId;
@@ -12,6 +14,8 @@ public class StudentDto {
     private boolean connected;
     private Instant joinedAt;
     private Instant completedAt;
+    private Map<String, Instant> answeredQuestions = new HashMap<>();
+    private Map<String, String> answers = new HashMap<>();
 
     public StudentDto() {}
 
@@ -27,7 +31,7 @@ public class StudentDto {
 
     public static StudentDto fromDomain(StudentStatus student) {
         if (student == null) return null;
-        return new StudentDto(
+        StudentDto dto = new StudentDto(
                 student.getStudentId(),
                 student.getStudentName(),
                 student.getStatus(),
@@ -35,6 +39,9 @@ public class StudentDto {
                 student.getJoinedAt(),
                 student.getCompletedAt()
         );
+        dto.setAnsweredQuestions(new HashMap<>(student.getAnsweredQuestions()));
+        dto.setAnswers(new HashMap<>(student.getQuestionAnswers()));
+        return dto;
     }
 
     public String getStudentId() {
@@ -83,6 +90,22 @@ public class StudentDto {
 
     public void setCompletedAt(Instant completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public Map<String, Instant> getAnsweredQuestions() {
+        return answeredQuestions;
+    }
+
+    public void setAnsweredQuestions(Map<String, Instant> answeredQuestions) {
+        this.answeredQuestions = answeredQuestions != null ? answeredQuestions : new HashMap<>();
+    }
+
+    public Map<String, String> getAnswers() {
+        return answers;
+    }
+
+    public void setAnswers(Map<String, String> answers) {
+        this.answers = answers != null ? answers : new HashMap<>();
     }
 }
 

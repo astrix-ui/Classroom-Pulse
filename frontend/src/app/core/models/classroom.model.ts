@@ -10,6 +10,8 @@ export interface ClassroomSession {
   completedCount: number;
   pendingCount: number;
   completionPercentage: number;
+  allowAnswers?: boolean;
+  questions?: QuestionDto[];
   createdAt: string;
 }
 

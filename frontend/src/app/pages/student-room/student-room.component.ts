@@ -27,6 +27,11 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
   inFlightQuestionId: string | null = null;
   errorMessage = '';
 
+  // Written Answer State
+  answerText = '';
+  pasteWarning = '';
+  private pasteWarningTimeout: any = null;
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -59,6 +64,9 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.pasteWarningTimeout) {
+      clearTimeout(this.pasteWarningTimeout);
+    }
     this.socketService.disconnect();
   }
 
@@ -80,11 +88,50 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
     return this.myStatus === 'COMPLETED';
   }
 
+  get requiresWrittenAnswer(): boolean {
+    return !!this.classroom?.allowAnswers;
+  }
+
+  get mySubmittedAnswer(): string | null {
+    if (!this.classroom || !this.currentQuestion) return null;
+    const me = this.classroom.students.find(s => s.studentId === this.studentId);
+    return me?.answers ? me.answers[this.currentQuestion.questionId] || null : null;
+  }
+
   get canComplete(): boolean {
-    return this.isClassroomActive &&
-           !!this.currentQuestion &&
-           !this.isCompleted &&
-           !this.submittingCompletion;
+    if (!this.isClassroomActive || !this.currentQuestion || this.isCompleted || this.submittingCompletion) {
+      return false;
+    }
+    if (this.requiresWrittenAnswer) {
+      return !!this.answerText && this.answerText.trim().length > 0;
+    }
+    return true;
+  }
+
+  onPreventPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    this.showPasteWarning();
+  }
+
+  onPreventCopy(event: ClipboardEvent): void {
+    event.preventDefault();
+  }
+
+  onPreventDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.showPasteWarning();
+  }
+
+  private showPasteWarning(): void {
+    this.pasteWarning = 'Copy-paste is disabled. Please type your answer manually.';
+    if (this.pasteWarningTimeout) {
+      clearTimeout(this.pasteWarningTimeout);
+    }
+    this.pasteWarningTimeout = setTimeout(() => {
+      this.pasteWarning = '';
+      this.cdr.markForCheck();
+    }, 3500);
+    this.cdr.markForCheck();
   }
 
   private loadClassroom(): void {
@@ -121,10 +168,12 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
           const prevQuestionId = this.classroom?.currentQuestion?.questionId;
           this.classroom = event.payload;
 
-          // If a new question was published, discard in-flight completions for older questions
+          // If a new question was published, reset answer text and in-flight tracking
           if (this.classroom?.currentQuestion?.questionId !== prevQuestionId) {
             this.inFlightQuestionId = null;
             this.submittingCompletion = false;
+            this.answerText = '';
+            this.pasteWarning = '';
           }
 
           this.cdr.markForCheck();
@@ -147,12 +196,14 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
     if (!this.canComplete || !this.currentQuestion) return;
 
     const targetQuestionId = this.currentQuestion.questionId;
+    const answer = this.requiresWrittenAnswer ? this.answerText.trim() : undefined;
+
     this.inFlightQuestionId = targetQuestionId;
     this.submittingCompletion = true;
     this.errorMessage = '';
     this.cdr.markForCheck();
 
-    this.apiService.completeQuestion(this.roomCode, this.studentId, targetQuestionId).subscribe({
+    this.apiService.completeQuestion(this.roomCode, this.studentId, targetQuestionId, answer).subscribe({
       next: (updatedClassroom) => {
         // Ensure this completion corresponds to the current question
         if (this.currentQuestion?.questionId === targetQuestionId) {

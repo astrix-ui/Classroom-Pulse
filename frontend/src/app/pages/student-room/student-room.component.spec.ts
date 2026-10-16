@@ -163,5 +163,39 @@ describe('StudentRoomComponent', () => {
     expect(component.isClassroomActive).toBeFalse();
     expect(component.canComplete).toBeFalse();
   });
+
+  it('should allow immediate completion when written answers are disabled', () => {
+    component.classroom = {
+      ...initialClassroom,
+      allowAnswers: false
+    };
+
+    expect(component.requiresWrittenAnswer).toBeFalse();
+    expect(component.canComplete).toBeTrue();
+  });
+
+  it('should require non-empty text when written answers are enabled', () => {
+    component.classroom = {
+      ...initialClassroom,
+      allowAnswers: true
+    };
+
+    expect(component.requiresWrittenAnswer).toBeTrue();
+    component.answerText = '';
+    expect(component.canComplete).toBeFalse();
+
+    component.answerText = 'My detailed answer';
+    expect(component.canComplete).toBeTrue();
+  });
+
+  it('should prevent paste and show warning', () => {
+    const pasteEvent = new Event('paste') as ClipboardEvent;
+    spyOn(pasteEvent, 'preventDefault');
+
+    component.onPreventPaste(pasteEvent);
+
+    expect(pasteEvent.preventDefault).toHaveBeenCalled();
+    expect(component.pasteWarning).toContain('Copy-paste is disabled');
+  });
 });
 

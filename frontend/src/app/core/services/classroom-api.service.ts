@@ -38,10 +38,12 @@ export class ClassroomApiService {
     }, { headers });
   }
 
-  completeQuestion(roomCode: string, studentId: string, questionId: string): Observable<ClassroomSession> {
-    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/students/${studentId}/complete`, {
-      questionId
-    });
+  completeQuestion(roomCode: string, studentId: string, questionId: string, answerText?: string): Observable<ClassroomSession> {
+    const payload: { questionId: string; answerText?: string } = { questionId };
+    if (answerText && answerText.trim()) {
+      payload.answerText = answerText.trim();
+    }
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/students/${studentId}/complete`, payload);
   }
 
   resetClassroom(roomCode: string, teacherToken: string): Observable<ClassroomSession> {
@@ -69,6 +71,15 @@ export class ClassroomApiService {
       'X-Teacher-Token': teacherToken
     });
     return this.http.delete<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/questions`, { headers });
+  }
+
+  toggleAllowAnswers(roomCode: string, teacherToken: string, allowAnswers: boolean): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.put<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/allow-answers`, {
+      allowAnswers
+    }, { headers });
   }
 
   closeClassroom(roomCode: string, teacherToken: string): Observable<ClassroomSession> {

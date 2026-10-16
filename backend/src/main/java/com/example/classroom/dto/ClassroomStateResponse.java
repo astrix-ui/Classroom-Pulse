@@ -13,6 +13,8 @@ public class ClassroomStateResponse {
     private int completedCount;
     private int pendingCount;
     private double completionPercentage;
+    private boolean allowAnswers = false;
+    private List<QuestionDto> questions = new ArrayList<>();
     private Instant createdAt;
 
     public ClassroomStateResponse() {}
@@ -29,6 +31,8 @@ public class ClassroomStateResponse {
         this.pendingCount = pendingCount;
         this.completionPercentage = completionPercentage;
         this.createdAt = createdAt;
+        this.allowAnswers = false;
+        this.questions = new ArrayList<>();
     }
 
     public String getRoomCode() {
@@ -101,6 +105,22 @@ public class ClassroomStateResponse {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isAllowAnswers() {
+        return allowAnswers;
+    }
+
+    public void setAllowAnswers(boolean allowAnswers) {
+        this.allowAnswers = allowAnswers;
+    }
+
+    public List<QuestionDto> getQuestions() {
+        return questions;
+    }
+
+    public void setQuestions(List<QuestionDto> questions) {
+        this.questions = questions != null ? questions : new ArrayList<>();
     }
 }
 

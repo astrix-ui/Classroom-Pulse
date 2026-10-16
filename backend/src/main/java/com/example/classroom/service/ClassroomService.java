@@ -111,6 +111,7 @@ public class ClassroomService {
             Question question = new Question(questionId, questionText.trim(), sequenceNumber, Instant.now());
 
             session.setCurrentQuestion(question);
+            session.addQuestionToHistory(question);
             session.resetAllStudentsToPending();
 
             ClassroomStateResponse state = toSafeState(session);
@@ -149,6 +150,7 @@ public class ClassroomService {
             );
 
             session.setCurrentQuestion(updated);
+            session.updateQuestionInHistory(updated);
 
             ClassroomStateResponse state = toSafeState(session);
             broadcastEvent(ClassroomEventType.QUESTION_UPDATED, session.getRoomCode(), state);
@@ -167,6 +169,12 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            Question current = session.getCurrentQuestion();
+            if (current != null) {
+                session.removeQuestionFromHistory(current.getQuestionId());
+                session.getStudents().values().forEach(s -> s.removeAnsweredQuestion(current.getQuestionId()));
+            }
+
             session.setCurrentQuestion(null);
             session.resetAllStudentsToPending();
 
@@ -179,6 +187,10 @@ public class ClassroomService {
     }
 
     public ClassroomStateResponse completeQuestion(String roomCode, String studentId, String questionId) {
+        return completeQuestion(roomCode, studentId, questionId, null);
+    }
+
+    public ClassroomStateResponse completeQuestion(String roomCode, String studentId, String questionId, String answerText) {
         ClassroomSession session = getSessionOrThrow(roomCode);
 
         if (!session.isActive()) {
@@ -199,8 +211,18 @@ public class ClassroomService {
             throw new InvalidClassroomStateException("The question is no longer active or question ID is invalid");
         }
 
-        // Thread-safe idempotent status change
-        boolean updated = student.markCompleted(Instant.now());
+        // When written answers are enabled, validate that an answer is provided
+        if (session.isAllowAnswers()) {
+            if (answerText == null || answerText.trim().isEmpty()) {
+                throw new IllegalArgumentException("Answer text is required when answers are enabled");
+            }
+            if (answerText.trim().length() > 2000) {
+                throw new IllegalArgumentException("Answer text cannot exceed 2000 characters");
+            }
+        }
+
+        // Thread-safe idempotent status change recording questionId and answerText
+        boolean updated = student.markCompleted(currentQuestion.getQuestionId(), answerText, Instant.now());
 
         ClassroomStateResponse state = toSafeState(session);
         if (updated) {
@@ -222,6 +244,23 @@ public class ClassroomService {
             session.resetAllStudentsToPending();
             ClassroomStateResponse state = toSafeState(session);
             broadcastEvent(ClassroomEventType.CLASSROOM_RESET, session.getRoomCode(), state);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse toggleAllowAnswers(String roomCode, String teacherToken, boolean allowAnswers) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+        verifyTeacherToken(session, teacherToken);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        synchronized (session) {
+            session.setAllowAnswers(allowAnswers);
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.ALLOW_ANSWERS_CHANGED, session.getRoomCode(), state);
+            log.info("Allow answers toggled to {} in room {}", allowAnswers, roomCode);
             return state;
         }
     }
@@ -299,7 +338,7 @@ public class ClassroomService {
         int pending = total - completed;
         double percentage = total > 0 ? Math.round((completed * 100.0 / total) * 10.0) / 10.0 : 0.0;
 
-        return new ClassroomStateResponse(
+        ClassroomStateResponse state = new ClassroomStateResponse(
                 session.getRoomCode(),
                 session.isActive(),
                 QuestionDto.fromDomain(session.getCurrentQuestion()),
@@ -310,6 +349,12 @@ public class ClassroomService {
                 percentage,
                 session.getCreatedAt()
         );
+        state.setAllowAnswers(session.isAllowAnswers());
+        state.setQuestions(session.getQuestionHistory().stream()
+                .map(QuestionDto::fromDomain)
+                .collect(Collectors.toList()));
+
+        return state;
     }
 }
 

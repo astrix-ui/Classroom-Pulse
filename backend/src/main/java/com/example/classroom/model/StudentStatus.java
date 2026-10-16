@@ -1,6 +1,9 @@
 package com.example.classroom.model;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class StudentStatus {
     private final String studentId;
@@ -9,6 +12,8 @@ public class StudentStatus {
     private volatile boolean connected;
     private final Instant joinedAt;
     private volatile Instant completedAt;
+    private final Map<String, Instant> answeredQuestions = new ConcurrentHashMap<>();
+    private final Map<String, String> questionAnswers = new ConcurrentHashMap<>();
 
     public StudentStatus(String studentId, String studentName, Instant joinedAt) {
         this.studentId = studentId;
@@ -61,12 +66,41 @@ public class StudentStatus {
     }
 
     public synchronized boolean markCompleted(Instant completionTime) {
-        if (this.status == CompletionStatus.COMPLETED) {
+        return markCompleted(null, null, completionTime);
+    }
+
+    public synchronized boolean markCompleted(String questionId, Instant completionTime) {
+        return markCompleted(questionId, null, completionTime);
+    }
+
+    public synchronized boolean markCompleted(String questionId, String answerText, Instant completionTime) {
+        if (this.status == CompletionStatus.COMPLETED && questionId != null && answeredQuestions.containsKey(questionId)) {
             return false; // already completed (idempotency check)
         }
         this.status = CompletionStatus.COMPLETED;
         this.completedAt = completionTime;
+        if (questionId != null) {
+            this.answeredQuestions.put(questionId, completionTime);
+            if (answerText != null && !answerText.trim().isEmpty()) {
+                this.questionAnswers.put(questionId, answerText.trim());
+            }
+        }
         return true;
+    }
+
+    public Map<String, Instant> getAnsweredQuestions() {
+        return Collections.unmodifiableMap(answeredQuestions);
+    }
+
+    public Map<String, String> getQuestionAnswers() {
+        return Collections.unmodifiableMap(questionAnswers);
+    }
+
+    public synchronized void removeAnsweredQuestion(String questionId) {
+        if (questionId != null) {
+            this.answeredQuestions.remove(questionId);
+            this.questionAnswers.remove(questionId);
+        }
     }
 }
 

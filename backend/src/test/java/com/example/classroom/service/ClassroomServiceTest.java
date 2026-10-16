@@ -269,5 +269,66 @@ class ClassroomServiceTest {
         assertEquals(0, stateAfterDelete.getCompletedCount());
         assertEquals(1, stateAfterDelete.getPendingCount());
     }
+
+    @Test
+    @DisplayName("Teacher can toggle written answers; students type answers when true, simple done when false")
+    void testToggleAllowAnswers() {
+        CreateClassroomResponse room = service.createClassroom();
+        JoinStudentResponse student = service.joinStudent(room.getRoomCode(), "Charlie");
+        QuestionDto q = service.publishQuestion(room.getRoomCode(), room.getTeacherToken(), "Can you answer?");
+
+        // Default is false (simple I'm Done mode)
+        assertFalse(service.getClassroomState(room.getRoomCode()).isAllowAnswers());
+
+        // In simple mode, student can complete without text
+        ClassroomStateResponse simpleDone = service.completeQuestion(room.getRoomCode(), student.getStudentId(), q.getQuestionId(), null);
+        assertEquals(1, simpleDone.getCompletedCount());
+
+        // Toggle to true (enable written answers mode)
+        ClassroomStateResponse toggled = service.toggleAllowAnswers(room.getRoomCode(), room.getTeacherToken(), true);
+        assertTrue(toggled.isAllowAnswers());
+
+        // New question
+        QuestionDto q2 = service.publishQuestion(room.getRoomCode(), room.getTeacherToken(), "Question 2?");
+
+        // Student completing without answerText should fail when allowAnswers is true
+        assertThrows(IllegalArgumentException.class, () ->
+            service.completeQuestion(room.getRoomCode(), student.getStudentId(), q2.getQuestionId(), "   "));
+
+        // Student completing with answerText succeeds
+        ClassroomStateResponse completedWithAnswer = service.completeQuestion(
+            room.getRoomCode(), student.getStudentId(), q2.getQuestionId(), "My typed answer"
+        );
+        assertEquals(1, completedWithAnswer.getCompletedCount());
+
+        StudentDto charlie = completedWithAnswer.getStudents().stream().filter(s -> s.getStudentName().equals("Charlie")).findFirst().orElseThrow();
+        assertEquals("My typed answer", charlie.getAnswers().get(q2.getQuestionId()));
+    }
+
+    @Test
+    @DisplayName("Question history retains all published questions and tracks student answered questions map")
+    void testQuestionHistoryAndStudentAnswerTracking() {
+        CreateClassroomResponse room = service.createClassroom();
+        JoinStudentResponse student = service.joinStudent(room.getRoomCode(), "Dana");
+
+        QuestionDto q1 = service.publishQuestion(room.getRoomCode(), room.getTeacherToken(), "Question One?");
+        service.completeQuestion(room.getRoomCode(), student.getStudentId(), q1.getQuestionId());
+
+        QuestionDto q2 = service.publishQuestion(room.getRoomCode(), room.getTeacherToken(), "Question Two?");
+        service.completeQuestion(room.getRoomCode(), student.getStudentId(), q2.getQuestionId());
+
+        QuestionDto q3 = service.publishQuestion(room.getRoomCode(), room.getTeacherToken(), "Question Three?");
+
+        ClassroomStateResponse state = service.getClassroomState(room.getRoomCode());
+        assertEquals(3, state.getQuestions().size());
+        assertEquals("Question One?", state.getQuestions().get(0).getQuestionText());
+        assertEquals("Question Two?", state.getQuestions().get(1).getQuestionText());
+        assertEquals("Question Three?", state.getQuestions().get(2).getQuestionText());
+
+        StudentDto dana = state.getStudents().stream().filter(s -> s.getStudentName().equals("Dana")).findFirst().orElseThrow();
+        assertTrue(dana.getAnsweredQuestions().containsKey(q1.getQuestionId()));
+        assertTrue(dana.getAnsweredQuestions().containsKey(q2.getQuestionId()));
+        assertFalse(dana.getAnsweredQuestions().containsKey(q3.getQuestionId()));
+    }
 }
 

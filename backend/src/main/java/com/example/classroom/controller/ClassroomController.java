@@ -91,7 +91,7 @@ public class ClassroomController {
             @PathVariable String roomCode,
             @PathVariable String studentId,
             @Valid @RequestBody CompleteQuestionRequest request) {
-        ClassroomStateResponse response = classroomService.completeQuestion(roomCode, studentId, request.getQuestionId());
+        ClassroomStateResponse response = classroomService.completeQuestion(roomCode, studentId, request.getQuestionId(), request.getAnswerText());
         return ResponseEntity.ok(response);
     }
 
@@ -100,6 +100,26 @@ public class ClassroomController {
             @PathVariable String roomCode,
             @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken) {
         ClassroomStateResponse response = classroomService.resetClassroom(roomCode, teacherToken);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/classrooms/{roomCode}/allow-answers")
+    public ResponseEntity<ClassroomStateResponse> toggleAllowAnswers(
+            @PathVariable String roomCode,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken,
+            @RequestBody(required = false) AllowAnswersRequest request) {
+        boolean allow = request == null || request.getAllowAnswers() == null || Boolean.TRUE.equals(request.getAllowAnswers());
+        ClassroomStateResponse response = classroomService.toggleAllowAnswers(roomCode, teacherToken, allow);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/allow-answers")
+    public ResponseEntity<ClassroomStateResponse> toggleAllowAnswersPost(
+            @PathVariable String roomCode,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken,
+            @RequestBody(required = false) AllowAnswersRequest request) {
+        boolean allow = request == null || request.getAllowAnswers() == null || Boolean.TRUE.equals(request.getAllowAnswers());
+        ClassroomStateResponse response = classroomService.toggleAllowAnswers(roomCode, teacherToken, allow);
         return ResponseEntity.ok(response);
     }
 

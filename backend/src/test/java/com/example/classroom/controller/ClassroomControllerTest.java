@@ -125,13 +125,31 @@ class ClassroomControllerTest {
         ClassroomStateResponse state = new ClassroomStateResponse(
                 "AB7KQ2", true, null, Collections.emptyList(), 1, 1, 0, 100.0, Instant.now()
         );
-        when(classroomService.completeQuestion("AB7KQ2", "s-uuid-1", "q-uuid-1")).thenReturn(state);
+        when(classroomService.completeQuestion("AB7KQ2", "s-uuid-1", "q-uuid-1", null)).thenReturn(state);
 
         mockMvc.perform(post("/api/classrooms/AB7KQ2/students/s-uuid-1/complete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.completedCount").value(1));
+    }
+
+    @Test
+    @DisplayName("PUT /api/classrooms/{roomCode}/allow-answers toggles answer state")
+    void testToggleAllowAnswersEndpoint() throws Exception {
+        ClassroomStateResponse state = new ClassroomStateResponse(
+                "AB7KQ2", true, null, Collections.emptyList(), 1, 0, 1, 0.0, Instant.now()
+        );
+        state.setAllowAnswers(false);
+        when(classroomService.toggleAllowAnswers("AB7KQ2", "t-uuid-1", false)).thenReturn(state);
+
+        AllowAnswersRequest request = new AllowAnswersRequest(false);
+        mockMvc.perform(put("/api/classrooms/AB7KQ2/allow-answers")
+                        .header("X-Teacher-Token", "t-uuid-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowAnswers").value(false));
     }
 
     @Test

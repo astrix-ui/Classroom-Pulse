@@ -99,31 +99,70 @@
             </span>
           </div>
 
-          <div *ngIf="classroom?.currentQuestion && classroom?.active && !isEditingQuestion" class="q-actions">
+          <div class="q-actions-row">
+            <!-- Written Answers Toggle Switch -->
             <button 
               type="button" 
-              class="btn-icon" 
-              (click)="onStartEditQuestion()" 
-              title="Edit Question">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-              <span>Edit</span>
+              class="toggle-switch-btn" 
+              [class.active]="isAllowAnswers" 
+              [disabled]="togglingAllowAnswers || !classroom?.active"
+              (click)="onToggleAllowAnswers()" 
+              role="switch" 
+              [attr.aria-checked]="isAllowAnswers" 
+              title="Toggle written answers mode (require typed answers vs simple button click)">
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">Written Answers</span>
+              <span class="toggle-state-badge" [class.badge-paused]="!isAllowAnswers">
+                {{ isAllowAnswers ? 'ENABLED' : 'DISABLED' }}
+              </span>
             </button>
 
-            <button 
-              type="button" 
-              class="btn-icon btn-icon-danger" 
-              (click)="openDeleteQuestionDialog()" 
-              title="Delete Question">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              <span>Delete</span>
-            </button>
+            <!-- Question Edit & Delete Actions -->
+            <div *ngIf="classroom?.currentQuestion && classroom?.active && !isEditingQuestion" class="q-actions">
+              <button 
+                type="button" 
+                class="btn-icon" 
+                (click)="onStartEditQuestion()" 
+                title="Edit Question">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+
+              <button 
+                type="button" 
+                class="btn-icon btn-icon-danger" 
+                (click)="openDeleteQuestionDialog()" 
+                title="Delete Question">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
+        </div>
+
+        <!-- Answer mode status notice -->
+        <div *ngIf="classroom?.active" class="answer-mode-notice" [class.mode-written]="isAllowAnswers" [class.mode-simple]="!isAllowAnswers" role="status">
+          <svg *ngIf="isAllowAnswers" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          <svg *ngIf="!isAllowAnswers" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span *ngIf="isAllowAnswers">
+            <strong>Written Answers Enabled:</strong> Students must type their answer (copy-paste disabled) before clicking I'm Done.
+          </span>
+          <span *ngIf="!isAllowAnswers">
+            <strong>Simple Mode (Answers Disabled):</strong> Students simply click I'm Done without typing an answer.
+          </span>
         </div>
 
         <!-- If no question published yet -->
@@ -199,6 +238,38 @@
           </div>
         </form>
       </section>
+
+      <!-- Session Questions History (Visible to Teacher) -->
+      <section class="card history-card" aria-labelledby="history-title">
+        <div class="section-header-compact">
+          <div class="title-with-seq">
+            <h2 id="history-title" class="section-title">Session Questions History</h2>
+            <span class="count-badge">{{ allQuestions.length }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="allQuestions.length === 0" class="empty-history-state">
+          <p class="empty-text">No questions asked yet in this session.</p>
+        </div>
+
+        <div *ngIf="allQuestions.length > 0" class="history-list" aria-label="List of all questions asked in this session">
+          <div *ngFor="let q of allQuestions; trackBy: trackByQuestionId" 
+               class="history-item"
+               [class.history-item-active]="classroom?.currentQuestion?.questionId === q.questionId">
+            <div class="history-item-top">
+              <div class="history-item-meta">
+                <span class="history-seq-pill">Q#{{ q.sequenceNumber }}</span>
+                <span *ngIf="classroom?.currentQuestion?.questionId === q.questionId" class="tag-status tag-completed">Active</span>
+                <span class="history-timestamp">{{ q.publishedAt | date:'shortTime' }}</span>
+              </div>
+              <span class="history-count-pill" title="Students who answered this question">
+                {{ getQuestionCompletionCount(q.questionId) }}/{{ students.length }} completed
+              </span>
+            </div>
+            <p class="history-item-text">{{ q.questionText }}</p>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Right: Student Live Status Sidebar (Compact for 40 students) -->
@@ -262,11 +333,16 @@
           <p class="empty-sub">Share room code <strong>{{ roomCode }}</strong> to join.</p>
         </div>
 
-        <!-- Compact Student Rows for 40 students -->
+        <!-- Compact Student Rows for 40 students (Clickable to inspect answered questions) -->
         <div *ngIf="students.length > 0" class="compact-student-list" aria-live="polite">
           <div 
             *ngFor="let student of filteredStudents; let idx = index; trackBy: trackByStudentId" 
-            class="compact-student-row"
+            class="compact-student-row clickable-student-row"
+            (click)="onSelectStudent(student)"
+            (keydown.enter)="onSelectStudent(student)"
+            role="button"
+            tabindex="0"
+            title="Click to view questions answered by {{ student.studentName }}"
             [ngClass]="{
               'row-completed': student.status === 'COMPLETED' && hasActiveQuestion,
               'row-pending': student.status === 'PENDING' && hasActiveQuestion,
@@ -295,11 +371,122 @@
                 <ng-container *ngIf="hasActiveQuestion && student.status === 'COMPLETED'">Done</ng-container>
                 <ng-container *ngIf="hasActiveQuestion && student.status === 'PENDING'">Pending</ng-container>
               </span>
+              <span class="row-arrow" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </span>
             </div>
           </div>
         </div>
       </div>
     </aside>
+  </div>
+</div>
+
+<!-- Student Answer Inspection Modal -->
+<div *ngIf="selectedStudent" class="modal-backdrop" (click)="onCloseStudentModal()" role="dialog" aria-modal="true" aria-labelledby="student-modal-title">
+  <div class="modal-card student-modal-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="student-avatar-sm">{{ selectedStudent.studentName.charAt(0).toUpperCase() }}</div>
+        <div>
+          <h3 id="student-modal-title" class="modal-title">{{ selectedStudent.studentName }}</h3>
+          <span class="modal-subtitle">Answered Questions Log</span>
+        </div>
+      </div>
+      <button type="button" class="btn-close-icon" (click)="onCloseStudentModal()" aria-label="Close modal">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Summary Banner -->
+    <div class="student-modal-summary">
+      <div class="summary-stat-cell">
+        <span class="summary-num">{{ getStudentAnsweredCount(selectedStudent) }} / {{ allQuestions.length }}</span>
+        <span class="summary-label">Completed</span>
+      </div>
+      <div class="summary-stat-cell">
+        <span class="summary-num">
+          {{ allQuestions.length > 0 ? (getStudentAnsweredCount(selectedStudent) * 100 / allQuestions.length | number:'1.0-0') : 0 }}%
+        </span>
+        <span class="summary-label">Rate</span>
+      </div>
+      <div class="summary-stat-cell">
+        <span class="summary-num tag-status" [ngClass]="{
+          'tag-completed': selectedStudent.status === 'COMPLETED' && hasActiveQuestion,
+          'tag-pending': selectedStudent.status === 'PENDING' && hasActiveQuestion,
+          'tag-inactive': !hasActiveQuestion
+        }">
+          {{ !hasActiveQuestion ? 'Waiting' : (selectedStudent.status === 'COMPLETED' ? 'Done' : 'Pending') }}
+        </span>
+        <span class="summary-label">Current Question</span>
+      </div>
+    </div>
+
+    <!-- Questions Breakdown List -->
+    <div class="student-questions-scroll">
+      <h4 class="breakdown-title">Session Questions</h4>
+
+      <div *ngIf="allQuestions.length === 0" class="empty-breakdown">
+        <p>No questions have been asked in this session yet.</p>
+      </div>
+
+      <div *ngIf="allQuestions.length > 0" class="breakdown-list">
+        <div *ngFor="let q of allQuestions; trackBy: trackByQuestionId" 
+             class="breakdown-item" 
+             [class.answered]="isQuestionAnsweredByStudent(selectedStudent, q.questionId)">
+          <div class="breakdown-status-col">
+            <span *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="status-icon-check" title="Completed">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span *ngIf="!isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="status-icon-pending" title="Not completed">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+              </svg>
+            </span>
+          </div>
+
+          <div class="breakdown-content-col">
+            <div class="breakdown-header-row">
+              <span class="breakdown-seq">Q#{{ q.sequenceNumber }}</span>
+              <span *ngIf="classroom?.currentQuestion?.questionId === q.questionId" class="tag-status tag-completed">Active</span>
+              <span *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="breakdown-time">
+                Completed at {{ getStudentAnsweredAt(selectedStudent, q.questionId) | date:'shortTime' }}
+              </span>
+              <span *ngIf="!isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="breakdown-unanswered">
+                Not answered
+              </span>
+            </div>
+            <p class="breakdown-text">{{ q.questionText }}</p>
+
+            <!-- Student Submitted Answer Display -->
+            <div *ngIf="isQuestionAnsweredByStudent(selectedStudent, q.questionId)" class="student-answer-wrap">
+              <div *ngIf="getStudentAnswerText(selectedStudent, q.questionId)" class="student-answer-box">
+                <span class="answer-box-label">Student Answer:</span>
+                <p class="answer-box-text">{{ getStudentAnswerText(selectedStudent, q.questionId) }}</p>
+              </div>
+              <div *ngIf="!getStudentAnswerText(selectedStudent, q.questionId)" class="answer-box-simple">
+                <span class="answer-simple-tag">Completed (Simple mode &mdash; no text required)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary btn-sm" (click)="onCloseStudentModal()">
+        Close
+      </button>
+    </div>
   </div>
 </div>
 

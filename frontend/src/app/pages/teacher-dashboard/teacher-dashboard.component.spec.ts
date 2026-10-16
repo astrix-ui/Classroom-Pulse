@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of, Subject } from 'rxjs';
 import { TeacherDashboardComponent } from './teacher-dashboard.component';
@@ -36,18 +37,26 @@ describe('TeacherDashboardComponent', () => {
   beforeEach(async () => {
     socketEventsSubject = new Subject<WebSocketEvent<ClassroomSession>>();
 
-    const apiSpy = jasmine.createSpyObj('ClassroomApiService', [
+    apiService = jasmine.createSpyObj('ClassroomApiService', [
       'getClassroom',
       'publishQuestion',
       'editQuestion',
       'deleteQuestion',
       'resetClassroom',
-      'closeClassroom'
+      'closeClassroom',
+      'toggleAllowAnswers',
+      'health'
     ]);
-    apiSpy.getClassroom.and.returnValue(of(initialClassroom));
-    apiSpy.deleteQuestion.and.returnValue(of(initialClassroom));
+    apiService.getClassroom.and.returnValue(of(initialClassroom));
+    apiService.deleteQuestion.and.returnValue(of(initialClassroom));
+    apiService.health.and.returnValue(of({ status: 'UP' }));
+    apiService.toggleAllowAnswers.and.returnValue(of({
+      ...initialClassroom,
+      allowAnswers: true
+    }));
 
     const sessionSpy = jasmine.createSpyObj('SessionStorageService', ['getTeacherToken', 'removeTeacherToken']);
+    sessionStorageService = sessionSpy;
     sessionSpy.getTeacherToken.and.returnValue('valid-teacher-token');
 
     const socketSpy = jasmine.createSpyObj('ClassroomSocketService', ['connect', 'disconnect'], {
@@ -66,9 +75,19 @@ describe('TeacherDashboardComponent', () => {
         ConfirmationDialogComponent
       ],
       providers: [
-        { provide: ClassroomApiService, useValue: apiSpy },
+        { provide: ClassroomApiService, useValue: apiService },
         { provide: SessionStorageService, useValue: sessionSpy },
-        { provide: ClassroomSocketService, useValue: socketSpy }
+        { provide: ClassroomSocketService, useValue: socketSpy },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: {
+                get: (key: string) => key === 'roomCode' ? 'AB7KQ2' : null
+              }
+            }
+          }
+        }
       ]
     }).compileComponents();
 
@@ -120,6 +139,59 @@ describe('TeacherDashboardComponent', () => {
     expect(component.classroom?.students.length).toBe(1);
     expect(component.classroom?.students[0].studentName).toBe('Alice');
     expect(component.students.length).toBe(1);
+  });
+
+  it('should toggle allow answers when requested', () => {
+    expect(component.isAllowAnswers).toBeFalse();
+    component.onToggleAllowAnswers();
+    expect(apiService.toggleAllowAnswers).toHaveBeenCalledWith('AB7KQ2', 'valid-teacher-token', true);
+    expect(component.classroom?.allowAnswers).toBeTrue();
+  });
+
+  it('should select student for inspection and calculate answers correctly', () => {
+    const studentWithAnswers = {
+      studentId: 's1',
+      studentName: 'Alice',
+      status: 'COMPLETED' as const,
+      connected: true,
+      joinedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      answeredQuestions: {
+        'q1': new Date().toISOString(),
+        'q2': new Date().toISOString()
+      },
+      answers: {
+        'q1': 'A process is an executing program, a thread is a unit within it.'
+      }
+    };
+
+    component.onSelectStudent(studentWithAnswers);
+    expect(component.selectedStudent).toEqual(studentWithAnswers);
+    expect(component.getStudentAnsweredCount(component.selectedStudent)).toBe(2);
+    expect(component.isQuestionAnsweredByStudent(component.selectedStudent, 'q1')).toBeTrue();
+    expect(component.isQuestionAnsweredByStudent(component.selectedStudent, 'q3')).toBeFalse();
+    expect(component.getStudentAnswerText(component.selectedStudent, 'q1')).toBe('A process is an executing program, a thread is a unit within it.');
+    expect(component.getStudentAnswerText(component.selectedStudent, 'q2')).toBeNull();
+
+    component.onCloseStudentModal();
+    expect(component.selectedStudent).toBeNull();
+  });
+
+  it('should send keepalive health ping when session is active', () => {
+    component.classroom = { ...initialClassroom, active: true };
+    component.sessionEnded = false;
+    apiService.health.calls.reset();
+
+    component.sendKeepAlivePing();
+    expect(apiService.health).toHaveBeenCalled();
+  });
+
+  it('should not send keepalive health ping when session is ended', () => {
+    apiService.health.calls.reset();
+    component.sessionEnded = true;
+
+    component.sendKeepAlivePing();
+    expect(apiService.health).not.toHaveBeenCalled();
   });
 });
 
