@@ -48,26 +48,25 @@ public class ClassroomService {
             throw new InvalidClassroomStateException("Classroom session is closed");
         }
 
-        if (studentName == null || studentName.trim().length() < 2 || studentName.trim().length() > 50) {
+        String cleanName = studentName.trim().replaceAll("\\s+", " ");
+        if (cleanName.length() < 2 || cleanName.length() > 50) {
             throw new IllegalArgumentException("Student name must be between 2 and 50 characters");
         }
 
-        String trimmedName = studentName.trim();
-
         synchronized (session) {
-            if (session.hasStudentWithName(trimmedName)) {
-                throw new DuplicateStudentException(trimmedName);
+            if (session.hasStudentWithName(cleanName)) {
+                throw new DuplicateStudentException(cleanName);
             }
 
             String studentId = UUID.randomUUID().toString();
-            StudentStatus student = new StudentStatus(studentId, trimmedName, Instant.now());
+            StudentStatus student = new StudentStatus(studentId, cleanName, Instant.now());
             session.addStudent(student);
 
             // Broadcast safe updated state
             ClassroomStateResponse state = toSafeState(session);
             broadcastEvent(ClassroomEventType.STUDENT_JOINED, session.getRoomCode(), state);
 
-            return new JoinStudentResponse(studentId, trimmedName, session.getRoomCode(), student.getStatus());
+            return new JoinStudentResponse(studentId, cleanName, session.getRoomCode(), student.getStatus());
         }
     }
 
@@ -75,11 +74,29 @@ public class ClassroomService {
         ClassroomSession session = getSessionOrThrow(roomCode);
 
         synchronized (session) {
+            boolean groupUpdated = false;
+
+            // When a student leaves the room, ensure they are also removed from any groups
+            for (StudentGroup group : new ArrayList<>(session.getGroups())) {
+                if (group.hasMember(studentId)) {
+                    group.removeMember(studentId);
+                    groupUpdated = true;
+                    // If the group is now empty, disband the group
+                    if (group.getMemberCount() == 0) {
+                        session.removeGroup(group.getGroupId());
+                    }
+                }
+            }
+
             StudentStatus removed = session.removeStudent(studentId);
             ClassroomStateResponse state = toSafeState(session);
-            if (removed != null) {
+            if (removed != null || groupUpdated) {
                 broadcastEvent(ClassroomEventType.STUDENT_LEFT, session.getRoomCode(), state);
-                log.info("Student {} ({}) left room {}", removed.getStudentName(), studentId, roomCode);
+                if (groupUpdated) {
+                    broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+                }
+                log.info("Student {} ({}) left room {} (groupUpdated={})",
+                        removed != null ? removed.getStudentName() : studentId, studentId, roomCode, groupUpdated);
             }
             return state;
         }

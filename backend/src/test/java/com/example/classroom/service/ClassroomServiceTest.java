@@ -486,5 +486,66 @@ class ClassroomServiceTest {
         assertEquals(teamAnswer, bobDto.getAnswers().get(question.getQuestionId()));
         assertNull(charlieDto.getAnswers().get(question.getQuestionId()));
     }
+
+    @Test
+    @DisplayName("Leaving the room also removes the student from their group and disbands empty groups")
+    void testStudentLeavingRoomIsRemovedFromGroup() {
+        CreateClassroomResponse room = service.createClassroom();
+        service.configureGroups(room.getRoomCode(), room.getTeacherToken(), true, 3);
+
+        JoinStudentResponse alice = service.joinStudent(room.getRoomCode(), "Alice");
+        JoinStudentResponse bob = service.joinStudent(room.getRoomCode(), "Bob");
+
+        ClassroomStateResponse gState = service.createGroup(room.getRoomCode(), alice.getStudentId(), "Team Alpha");
+        String groupId = gState.getGroups().get(0).getGroupId();
+        service.addMemberToGroup(room.getRoomCode(), groupId, alice.getStudentId(), bob.getStudentId());
+
+        // Verify group has 2 members
+        ClassroomStateResponse beforeLeave = service.getClassroomState(room.getRoomCode());
+        assertEquals(2, beforeLeave.getTotalStudents());
+        assertEquals(1, beforeLeave.getGroups().size());
+        assertEquals(2, beforeLeave.getGroups().get(0).getMembers().size());
+
+        // Bob leaves the room without leaving the group first
+        ClassroomStateResponse afterBobLeaves = service.leaveStudent(room.getRoomCode(), bob.getStudentId());
+        assertEquals(1, afterBobLeaves.getTotalStudents());
+        assertEquals(1, afterBobLeaves.getGroups().size());
+        assertEquals(1, afterBobLeaves.getGroups().get(0).getMembers().size());
+        assertEquals("Alice", afterBobLeaves.getGroups().get(0).getMembers().get(0).getStudentName());
+
+        // Alice leaves the room - now group is empty and should be disbanded
+        ClassroomStateResponse afterAliceLeaves = service.leaveStudent(room.getRoomCode(), alice.getStudentId());
+        assertEquals(0, afterAliceLeaves.getTotalStudents());
+        assertEquals(0, afterAliceLeaves.getGroups().size());
+    }
+
+    @Test
+    @DisplayName("Student name entered while joining must be unique case-insensitively and allows rejoining after leave")
+    void testUniqueStudentNameEnforcement() {
+        CreateClassroomResponse room = service.createClassroom();
+
+        JoinStudentResponse alice = service.joinStudent(room.getRoomCode(), "Alice");
+        assertNotNull(alice.getStudentId());
+
+        // Same name
+        assertThrows(DuplicateStudentException.class, () ->
+                service.joinStudent(room.getRoomCode(), "Alice"));
+
+        // Case-insensitive duplicate
+        assertThrows(DuplicateStudentException.class, () ->
+                service.joinStudent(room.getRoomCode(), "alice"));
+
+        // Whitespace-varied duplicate
+        assertThrows(DuplicateStudentException.class, () ->
+                service.joinStudent(room.getRoomCode(), "  Alice  "));
+
+        // Alice leaves room
+        service.leaveStudent(room.getRoomCode(), alice.getStudentId());
+
+        // Now "Alice" can join again cleanly
+        JoinStudentResponse reconnectedAlice = service.joinStudent(room.getRoomCode(), "Alice");
+        assertNotNull(reconnectedAlice.getStudentId());
+        assertEquals("Alice", reconnectedAlice.getStudentName());
+    }
 }
 

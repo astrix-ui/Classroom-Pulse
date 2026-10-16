@@ -8,6 +8,7 @@ import { SessionStorageService } from '../../core/services/session-storage.servi
 import { ClassroomSession, StudentGroupDto } from '../../core/models/classroom.model';
 import { ConnectionState, WebSocketEvent } from '../../core/models/websocket-event.model';
 import { CompletionStatus, StudentDto } from '../../core/models/student-status.model';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-student-room',
@@ -48,6 +49,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
     private apiService: ClassroomApiService,
     private socketService: ClassroomSocketService,
     private sessionStorageService: SessionStorageService,
+    public themeService: ThemeService,
     private cdr: ChangeDetectorRef
   ) {}
 

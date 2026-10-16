@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClassroomApiService } from '../../core/services/classroom-api.service';
 import { SessionStorageService } from '../../core/services/session-storage.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-student-join',
@@ -33,6 +34,7 @@ export class StudentJoinComponent implements OnInit {
     private router: Router,
     private apiService: ClassroomApiService,
     private sessionStorageService: SessionStorageService,
+    public themeService: ThemeService,
     private cdr: ChangeDetectorRef
   ) {}
 

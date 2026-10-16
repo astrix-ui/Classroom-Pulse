@@ -1,347 +1,458 @@
-<div class="student-room-container">
-  <!-- Reconnecting banner -->
-  <div *ngIf="connectionState === 'RECONNECTING'" class="reconnecting-banner" role="status" aria-live="polite">
-    <span>Reconnecting to classroom... Showing latest status</span>
+<div class="student-room-immersive">
+  <!-- Ambient Floating Aurora Backdrop (Pure CSS) -->
+  <div class="ambient-backdrop" aria-hidden="true">
+    <div class="aurora-blob aurora-blob-1"></div>
+    <div class="aurora-blob aurora-blob-2"></div>
+    <div class="aurora-grid-overlay"></div>
   </div>
 
-  <!-- Header -->
-  <header class="room-header">
-    <div class="header-left">
-      <div class="student-avatar">{{ studentName.charAt(0).toUpperCase() }}</div>
-      <div class="student-meta">
-        <h1 class="student-name">{{ studentName }}</h1>
-        <div class="room-code-tag">Room: <strong>{{ roomCode }}</strong></div>
+  <!-- Reconnecting banner -->
+  <div *ngIf="connectionState === 'RECONNECTING'" class="reconnecting-banner" role="status" aria-live="polite">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin-icon">
+      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+    </svg>
+    <span>Reconnecting to classroom session... Showing latest synchronized status</span>
+  </div>
+
+  <!-- Immersive Floating Top Navbar -->
+  <header class="student-navbar">
+    <div class="nav-left">
+      <div class="student-avatar-wrap">
+        <div class="student-avatar">{{ studentName.charAt(0).toUpperCase() }}</div>
+        <div class="avatar-online-halo" [class.connected]="connectionState === 'CONNECTED'"></div>
+      </div>
+      <div class="student-info">
+        <div class="student-name-row">
+          <h1 class="student-name">{{ studentName }}</h1>
+          <span class="role-pill">Student</span>
+        </div>
+        <div class="room-pill" title="Classroom Code">
+          <span class="room-pill-label">Room</span>
+          <span class="room-pill-code">{{ roomCode }}</span>
+        </div>
       </div>
     </div>
-    <div class="header-right">
+
+    <div class="nav-right">
       <app-connection-indicator [state]="connectionState"></app-connection-indicator>
+
+      <!-- Dark / Light Theme Toggle -->
       <button 
         type="button" 
-        class="btn btn-outline btn-sm leave-btn" 
+        class="theme-toggle-btn" 
+        (click)="themeService.toggleTheme()"
+        [attr.aria-label]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+        [title]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+        <!-- Sun Icon (shown in dark theme) -->
+        <svg *ngIf="themeService.isDark" class="theme-icon sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Moon Icon (shown in light theme) -->
+        <svg *ngIf="!themeService.isDark" class="theme-icon moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <!-- Leave Room Button -->
+      <button 
+        type="button" 
+        class="nav-leave-btn" 
         (click)="onLeaveRoom()"
-        title="Leave this classroom session">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        title="Leave classroom session">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
           <polyline points="16 17 21 12 16 7"></polyline>
           <line x1="21" y1="12" x2="9" y2="12"></line>
         </svg>
-        <span>Leave</span>
+        <span class="leave-text">Leave</span>
       </button>
     </div>
   </header>
 
   <!-- Error alert if any -->
   <div *ngIf="errorMessage" class="error-banner" role="alert">
-    {{ errorMessage }}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>{{ errorMessage }}</span>
   </div>
 
   <!-- Classroom closed alert -->
-  <div *ngIf="!isClassroomActive" class="closed-card card" role="alert" aria-live="assertive">
+  <div *ngIf="!isClassroomActive" class="closed-fullscreen-card" role="alert" aria-live="assertive">
     <div class="closed-icon-wrap">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
       </svg>
     </div>
-    <h2>Classroom Session Ended</h2>
-    <p>The teacher has ended this classroom session. Thank you for participating!</p>
-    <a routerLink="/" class="btn btn-secondary return-home-btn">Return to Home</a>
+    <h2 class="closed-title">Classroom Session Ended</h2>
+    <p class="closed-desc">The teacher has ended this classroom session. Thank you for participating!</p>
+    <a routerLink="/" class="btn btn-primary return-home-btn">Return to Home</a>
   </div>
 
-  <!-- Active Session Content -->
-  <main *ngIf="isClassroomActive" class="room-content">
-    <!-- Group Formation Section (Shown when teacher enables groups) -->
-    <section *ngIf="groupsEnabled" class="card group-formation-card" aria-labelledby="group-section-title">
-      <!-- Section Header -->
-      <div class="group-section-header">
-        <div class="group-title-wrap">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          <h2 id="group-section-title" class="group-section-title">Team Group</h2>
-          <span class="group-size-badge">Teams of {{ maxGroupSize }}</span>
-        </div>
-        <button 
-          *ngIf="myGroup" 
-          type="button" 
-          class="btn-leave-group" 
-          (click)="onLeaveGroup()" 
-          [disabled]="leavingGroup"
-          title="Leave this group">
-          {{ leavingGroup ? 'Leaving...' : 'Leave Group' }}
-        </button>
-      </div>
+  <!-- Active Session Content Flow -->
+  <main *ngIf="isClassroomActive" class="student-stage-viewport">
+    <div class="stage-flow" [class.has-team-dock]="groupsEnabled">
 
-      <!-- Group Error Banner -->
-      <div *ngIf="groupErrorMessage" class="group-error-alert" role="alert">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>{{ groupErrorMessage }}</span>
-      </div>
+      <!-- PRIMARY ARENA: Question Prompt & Answer Action -->
+      <div class="primary-arena">
 
-      <!-- State 1: Student is currently in a group -->
-      <div *ngIf="myGroup" class="my-group-container">
-        <div class="my-group-status-bar">
-          <div class="my-group-name-col">
-            <span class="my-group-label">Your Group</span>
-            <h3 class="my-group-heading">{{ myGroup.groupName }}</h3>
-          </div>
-          <span class="group-capacity-pill" [class.capacity-complete]="isGroupFull">
-            {{ myGroup.members.length }}/{{ maxGroupSize }} {{ isGroupFull ? 'Full' : 'Open' }}
-          </span>
-        </div>
-
-        <!-- Current Members List -->
-        <div class="group-members-list">
-          <h4 class="sub-heading">Members ({{ myGroup.members.length }}/{{ maxGroupSize }})</h4>
-          <div class="members-chip-row">
-            <div *ngFor="let m of myGroup.members" class="student-member-chip" [class.current-user-chip]="m.studentId === studentId">
-              <span class="chip-avatar">{{ m.studentName.charAt(0).toUpperCase() }}</span>
-              <span class="chip-name">{{ m.studentName }}</span>
-              <span *ngIf="m.studentId === myGroup.creatorStudentId" class="creator-tag">Creator</span>
-              <span *ngIf="m.studentId === studentId" class="you-tag">You</span>
+        <!-- Question Stage Card -->
+        <section class="glass-card question-stage-card" aria-labelledby="question-heading">
+          <div class="stage-top-bar">
+            <div class="question-meta-badge">
+              <span class="live-dot" [class.active]="!!currentQuestion"></span>
+              <span id="question-heading" class="question-seq-text">
+                {{ currentQuestion ? 'Question #' + currentQuestion.sequenceNumber : 'Active Question' }}
+              </span>
             </div>
-          </div>
-        </div>
 
-        <!-- Add Members from Room (if not full) -->
-        <div *ngIf="!isGroupFull" class="add-members-section">
-          <div class="add-header-row">
-            <h4 class="sub-heading">Add Teammates from Room</h4>
-            <span class="spots-left-note">{{ maxGroupSize - myGroup.members.length }} spot(s) remaining</span>
-          </div>
-          <p class="add-hint-text">Choose an available student below to immediately add them to your group:</p>
-
-          <!-- Search filter if more than 3 students -->
-          <div *ngIf="availableStudents.length > 3" class="member-search-box">
-            <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input 
-              type="text" 
-              class="member-search-input" 
-              placeholder="Search student name..." 
-              [(ngModel)]="studentSearchText" 
-              [ngModelOptions]="{standalone: true}" />
-            <button 
-              *ngIf="studentSearchText" 
-              type="button" 
-              class="clear-search-btn" 
-              (click)="studentSearchText = ''"
-              title="Clear search">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
+            <app-status-light 
+              [status]="myStatus" 
+              [hasActiveQuestion]="!!currentQuestion" 
+              [connected]="connectionState === 'CONNECTED'">
+            </app-status-light>
           </div>
 
-          <div *ngIf="availableStudents.length === 0" class="no-available-students">
-            <p>No unassigned students available in the room right now.</p>
-          </div>
-
-          <div *ngIf="availableStudents.length > 0 && filteredAvailableStudents.length === 0" class="no-available-students">
-            <p>No unassigned students match "{{ studentSearchText }}".</p>
-          </div>
-
-          <div *ngIf="filteredAvailableStudents.length > 0" class="available-students-scroll-wrap">
-            <div class="available-students-list" role="region" aria-label="Scrollable list of unassigned students">
-              <div *ngFor="let s of filteredAvailableStudents" class="available-student-row">
-                <div class="avail-student-info">
-                  <span class="avail-avatar">{{ s.studentName.charAt(0).toUpperCase() }}</span>
-                  <span class="avail-name" title="{{ s.studentName }}">{{ s.studentName }}</span>
-                </div>
-                <button 
-                  type="button" 
-                  class="btn btn-sm btn-primary add-member-btn" 
-                  (click)="onAddMember(s)"
-                  [disabled]="addingMemberId === s.studentId">
-                  <span *ngIf="addingMemberId === s.studentId">Adding...</span>
-                  <span *ngIf="addingMemberId !== s.studentId">+ Add</span>
-                </button>
+          <!-- Waiting State: Living Ambient Radar -->
+          <div *ngIf="!currentQuestion" class="waiting-stage" aria-live="polite">
+            <div class="radar-visual">
+              <div class="radar-ring ring-1"></div>
+              <div class="radar-ring ring-2"></div>
+              <div class="radar-ring ring-3"></div>
+              <div class="radar-core-beacon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
               </div>
             </div>
-            <div *ngIf="filteredAvailableStudents.length > 3" class="scroll-hint-bar">
-              <span>Scroll to view all {{ filteredAvailableStudents.length }} students</span>
+            <h2 class="waiting-title">Awaiting Question</h2>
+            <p class="waiting-desc">Your teacher has not published a question yet. It will appear on your screen immediately when assigned.</p>
+          </div>
+
+          <!-- Active Question State: Editorial Display -->
+          <div *ngIf="currentQuestion" class="question-revealed" aria-live="polite">
+            <div class="quote-accent-bar"></div>
+            <div class="question-body">
+              <p class="question-text">{{ currentQuestion.questionText }}</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Group Full Banner -->
-        <div *ngIf="isGroupFull" class="group-full-banner">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>Your group is complete with {{ maxGroupSize }} members.</span>
-        </div>
-      </div>
+        <!-- Response Action Arena -->
+        <section class="glass-card action-stage-card" aria-label="Student Response Action">
 
-      <!-- State 2: Student is NOT in a group -->
-      <div *ngIf="!myGroup" class="unassigned-group-container">
-        <div class="prompt-box">
-          <div class="prompt-header-row">
-            <span class="prompt-icon-pill">Action Required</span>
-            <p class="prompt-title">Teacher enabled groups of {{ maxGroupSize }}</p>
+          <!-- State: COMPLETED (Celebration & Submitted Answer Display) -->
+          <div *ngIf="isCompleted" class="completed-celebration" aria-live="polite">
+            <div class="celebration-badge-wrap">
+              <div class="celebration-halo"></div>
+              <div class="check-circle-animated">
+                <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
+                  <circle class="celebration-circle-bg" cx="24" cy="24" r="22" stroke="currentColor" stroke-width="3" />
+                  <path class="celebration-check-path" d="M14 24.5L21 31.5L34 16.5" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+            </div>
+
+            <h2 class="confirmation-title">{{ myGroup ? 'Team Response Submitted' : "You're All Done" }}</h2>
+            <p class="confirmation-text">
+              <ng-container *ngIf="myGroup">
+                Your team (<strong>{{ myGroup.groupName }}</strong>) has submitted the response. Sit tight until the teacher publishes the next question.
+              </ng-container>
+              <ng-container *ngIf="!myGroup">
+                Your response has been synchronized with the teacher. Sit tight until the next question is published.
+              </ng-container>
+            </p>
+
+            <!-- Display submitted answer preview if student or group submitted one -->
+            <div *ngIf="mySubmittedAnswer" class="student-submitted-preview">
+              <div class="preview-header">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span class="preview-label">{{ myGroup ? 'Team Submitted Answer:' : 'Your Submitted Answer:' }}</span>
+              </div>
+              <blockquote class="preview-text">{{ mySubmittedAnswer }}</blockquote>
+            </div>
           </div>
-          <p class="prompt-desc">Create your own group and choose teammates from the room, or wait for another student to add you.</p>
-          
-          <div class="create-group-form">
-            <input 
-              type="text" 
-              class="create-group-input" 
-              [(ngModel)]="newGroupName" 
-              [ngModelOptions]="{standalone: true}"
-              placeholder="Group name (optional, e.g. Team Alpha)"
-              maxlength="50"
-              (keydown.enter)="onCreateGroup()">
+
+          <!-- State: NOT COMPLETED & QUESTION ACTIVE -->
+          <div *ngIf="!isCompleted && currentQuestion" class="active-response-container">
+
+            <!-- Written Answer Textarea (Shown when requiresWrittenAnswer is true) -->
+            <div *ngIf="requiresWrittenAnswer" class="student-answer-wrap">
+              <div class="answer-header-row">
+                <label for="studentAnswerInput" class="answer-input-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                    <line x1="9" y1="20" x2="15" y2="20"></line>
+                    <line x1="12" y1="4" x2="12" y2="20"></line>
+                  </svg>
+                  <span>Type Your Answer</span>
+                </label>
+                <span class="char-pill" [class.char-pill-warn]="answerText.length > 900">
+                  {{ answerText.length }}/1000
+                </span>
+              </div>
+
+              <div class="textarea-glow-container">
+                <textarea 
+                  id="studentAnswerInput"
+                  class="student-answer-textarea"
+                  rows="4"
+                  [(ngModel)]="answerText"
+                  [ngModelOptions]="{standalone: true}"
+                  maxlength="1000"
+                  (paste)="onPreventPaste($event)"
+                  (copy)="onPreventCopy($event)"
+                  (cut)="onPreventCopy($event)"
+                  (drop)="onPreventDrop($event)"
+                  placeholder="Type your response here (copy-paste is disabled)..."
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  [disabled]="submittingCompletion">
+                </textarea>
+              </div>
+
+              <!-- Copy-paste disabled warning alert -->
+              <div *ngIf="pasteWarning" class="paste-warning-banner" role="alert">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>{{ pasteWarning }}</span>
+              </div>
+
+              <div class="input-helper-row">
+                <span class="type-hint">Copy-paste disabled • Manual typing required</span>
+              </div>
+            </div>
+
+            <!-- Huge Action Button -->
+            <div class="action-button-container">
+              <button 
+                type="button" 
+                class="huge-complete-btn"
+                [class.ready-pulse]="canComplete"
+                [disabled]="!canComplete"
+                (click)="onMarkCompleted()"
+                [attr.aria-label]="requiresWrittenAnswer ? 'Submit written answer' : 'Mark question completed'">
+                <span *ngIf="submittingCompletion" class="btn-spinner-content">
+                  <svg class="spin-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                  </svg>
+                  <span>Saving...</span>
+                </span>
+                <span *ngIf="!submittingCompletion">I'M DONE</span>
+              </button>
+            </div>
+
+            <!-- Dynamic Hint -->
+            <p class="touch-hint" *ngIf="requiresWrittenAnswer">
+              <span *ngIf="myGroup">Any group member can submit on behalf of the whole group.</span>
+              <span *ngIf="!myGroup">Type your answer above, then tap I'M DONE to submit.</span>
+            </p>
+            <p class="touch-hint" *ngIf="!requiresWrittenAnswer">
+              <span *ngIf="myGroup">Any group member can tap I'M DONE on behalf of the whole group.</span>
+              <span *ngIf="!myGroup">Tap I'M DONE once you have finished solving this question.</span>
+            </p>
+          </div>
+
+          <!-- State: NOT COMPLETED & NO QUESTION -->
+          <div *ngIf="!isCompleted && !currentQuestion" class="waiting-action-wrap">
             <button 
               type="button" 
-              class="btn btn-primary create-group-btn" 
-              (click)="onCreateGroup()" 
-              [disabled]="creatingGroup">
-              <span *ngIf="creatingGroup">Creating...</span>
-              <span *ngIf="!creatingGroup">Create Group</span>
+              class="huge-complete-btn btn-waiting-state" 
+              [disabled]="true"
+              aria-label="Waiting for question">
+              <span>WAITING FOR QUESTION</span>
             </button>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Question Card -->
-    <section class="card question-card" aria-labelledby="question-heading">
-      <div class="card-top-bar">
-        <span class="section-label" id="question-heading">
-          {{ currentQuestion ? 'Question #' + currentQuestion.sequenceNumber : 'Active Question' }}
-        </span>
-        <app-status-light 
-          [status]="myStatus" 
-          [hasActiveQuestion]="!!currentQuestion" 
-          [connected]="connectionState === 'CONNECTED'">
-        </app-status-light>
+        </section>
       </div>
 
-      <!-- If no question published yet -->
-      <div *ngIf="!currentQuestion" class="waiting-box" aria-live="polite">
-        <div class="pulsing-clock">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-        </div>
-        <h2 class="waiting-title">Waiting for Question</h2>
-        <p class="waiting-desc">The teacher has not published a question yet. It will appear on your screen automatically once posted.</p>
-      </div>
+      <!-- COMPANION ARENA: Team Workspace (Shown when teacher enables groups) -->
+      <aside *ngIf="groupsEnabled" class="companion-arena" aria-labelledby="group-section-title">
+        <section class="glass-card team-dock-card">
+          <!-- Dock Header -->
+          <div class="team-dock-header">
+            <div class="dock-title-group">
+              <div class="dock-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 id="group-section-title" class="dock-title">Team Workspace</h2>
+                <span class="dock-sub">Teams of {{ maxGroupSize }}</span>
+              </div>
+            </div>
 
-      <!-- If question is published -->
-      <div *ngIf="currentQuestion" class="question-display" aria-live="polite">
-        <p class="question-text">{{ currentQuestion.questionText }}</p>
-      </div>
-    </section>
-
-    <!-- Action Section with COMPLETED Button and optional Written Answer Input -->
-    <section class="action-card card" aria-label="Student Response Action">
-      <div *ngIf="isCompleted" class="completed-confirmation" aria-live="polite">
-        <div class="check-circle">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-        <h2 class="confirmation-title">{{ myGroup ? 'Team Response Submitted' : "You're All Done" }}</h2>
-        <p class="confirmation-text">
-          <ng-container *ngIf="myGroup">
-            Your team (<strong>{{ myGroup.groupName }}</strong>) has submitted the response. Sit tight until the next question is published.
-          </ng-container>
-          <ng-container *ngIf="!myGroup">
-            Your teacher has been notified. Sit tight until the next question is published.
-          </ng-container>
-        </p>
-
-        <!-- Display submitted answer preview if student or group submitted one -->
-        <div *ngIf="mySubmittedAnswer" class="student-submitted-preview">
-          <span class="preview-label">{{ myGroup ? 'Team Submitted Answer:' : 'Your Submitted Answer:' }}</span>
-          <p class="preview-text">{{ mySubmittedAnswer }}</p>
-        </div>
-      </div>
-
-      <!-- If not completed and question is active -->
-      <div *ngIf="!isCompleted && currentQuestion" class="active-response-container">
-        <!-- Written Answer Textarea (Shown only when requiresWrittenAnswer is true) -->
-        <div *ngIf="requiresWrittenAnswer" class="student-answer-wrap">
-          <div class="answer-header-row">
-            <label for="studentAnswerInput" class="answer-input-label">Type Your Answer</label>
-            <span class="char-pill" [class.char-pill-warn]="answerText.length > 900">{{ answerText.length }}/1000</span>
+            <button 
+              *ngIf="myGroup" 
+              type="button" 
+              class="dock-leave-group-btn" 
+              (click)="onLeaveGroup()" 
+              [disabled]="leavingGroup"
+              title="Leave this group">
+              {{ leavingGroup ? 'Leaving...' : 'Leave Group' }}
+            </button>
           </div>
 
-          <textarea 
-            id="studentAnswerInput"
-            class="student-answer-textarea"
-            rows="4"
-            [(ngModel)]="answerText"
-            [ngModelOptions]="{standalone: true}"
-            maxlength="1000"
-            (paste)="onPreventPaste($event)"
-            (copy)="onPreventCopy($event)"
-            (cut)="onPreventCopy($event)"
-            (drop)="onPreventDrop($event)"
-            placeholder="Type your answer here (copy-paste is disabled)..."
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-            spellcheck="false"
-            [disabled]="submittingCompletion">
-          </textarea>
-
-          <!-- Copy-paste disabled warning alert -->
-          <div *ngIf="pasteWarning" class="paste-warning-banner" role="alert">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Group Error Banner -->
+          <div *ngIf="groupErrorMessage" class="group-error-alert" role="alert">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <span>{{ pasteWarning }}</span>
+            <span>{{ groupErrorMessage }}</span>
           </div>
 
-          <p class="type-hint">Copy-paste is disabled. Type your answer manually before pressing I'M DONE.</p>
-        </div>
+          <!-- Case 1: Student is in a group -->
+          <div *ngIf="myGroup" class="dock-group-content">
+            <div class="dock-team-banner">
+              <div class="team-banner-left">
+                <span class="team-banner-sub">Your Team</span>
+                <h3 class="team-banner-name">{{ myGroup.groupName }}</h3>
+              </div>
+              <span class="team-capacity-pill" [class.capacity-complete]="isGroupFull">
+                {{ myGroup.members.length }}/{{ maxGroupSize }} {{ isGroupFull ? 'Full' : 'Open' }}
+              </span>
+            </div>
 
-        <button 
-          type="button" 
-          class="huge-complete-btn"
-          [disabled]="!canComplete"
-          (click)="onMarkCompleted()"
-          [attr.aria-label]="requiresWrittenAnswer ? 'Submit written answer' : 'Mark question completed'">
-          <span *ngIf="submittingCompletion">Saving...</span>
-          <span *ngIf="!submittingCompletion">I'M DONE</span>
-        </button>
+            <!-- Members List -->
+            <div class="team-roster">
+              <h4 class="roster-heading">Roster ({{ myGroup.members.length }}/{{ maxGroupSize }})</h4>
+              <div class="roster-chips-flow">
+                <div *ngFor="let m of myGroup.members" class="roster-chip" [class.current-user-chip]="m.studentId === studentId">
+                  <span class="chip-avatar">{{ m.studentName.charAt(0).toUpperCase() }}</span>
+                  <span class="chip-name">{{ m.studentName }}</span>
+                  <span *ngIf="m.studentId === myGroup.creatorStudentId" class="creator-badge">Creator</span>
+                  <span *ngIf="m.studentId === studentId" class="you-badge">You</span>
+                </div>
+              </div>
+            </div>
 
-        <p class="touch-hint" *ngIf="requiresWrittenAnswer">
-          <span *ngIf="myGroup">Any group member can submit the answer on behalf of the whole group.</span>
-          <span *ngIf="!myGroup">Type your answer above, then tap I'M DONE to submit.</span>
-        </p>
-        <p class="touch-hint" *ngIf="!requiresWrittenAnswer">
-          <span *ngIf="myGroup">Any group member can tap I'M DONE on behalf of the whole group.</span>
-          <span *ngIf="!myGroup">Tap the button once you have finished thinking through or solving this question.</span>
-        </p>
-      </div>
+            <!-- Add Teammates from Room -->
+            <div *ngIf="!isGroupFull" class="add-teammates-box">
+              <div class="add-teammates-header">
+                <h4 class="roster-heading">Add Teammates</h4>
+                <span class="spots-badge">{{ maxGroupSize - myGroup.members.length }} left</span>
+              </div>
+              <p class="add-desc">Choose an available student below to immediately add them to your team:</p>
 
-      <!-- If waiting for question -->
-      <div *ngIf="!isCompleted && !currentQuestion" class="waiting-action-wrap">
-        <button 
-          type="button" 
-          class="huge-complete-btn" 
-          [disabled]="true"
-          aria-label="Waiting for question">
-          <span>WAITING FOR QUESTION</span>
-        </button>
-      </div>
-    </section>
+              <!-- Search Filter -->
+              <div *ngIf="availableStudents.length > 3" class="member-search-box">
+                <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input 
+                  type="text" 
+                  class="member-search-input" 
+                  placeholder="Search student..." 
+                  [(ngModel)]="studentSearchText" 
+                  [ngModelOptions]="{standalone: true}" />
+                <button 
+                  *ngIf="studentSearchText" 
+                  type="button" 
+                  class="clear-search-btn" 
+                  (click)="studentSearchText = ''"
+                  title="Clear search">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Available Students States -->
+              <div *ngIf="availableStudents.length === 0" class="no-students-note">
+                <p>No unassigned students in room.</p>
+              </div>
+
+              <div *ngIf="availableStudents.length > 0 && filteredAvailableStudents.length === 0" class="no-students-note">
+                <p>No students match "{{ studentSearchText }}".</p>
+              </div>
+
+              <div *ngIf="filteredAvailableStudents.length > 0" class="available-students-scroll-wrap">
+                <div class="available-students-list" role="region" aria-label="Available students list">
+                  <div *ngFor="let s of filteredAvailableStudents" class="available-student-row">
+                    <div class="avail-student-info">
+                      <span class="avail-avatar">{{ s.studentName.charAt(0).toUpperCase() }}</span>
+                      <span class="avail-name" title="{{ s.studentName }}">{{ s.studentName }}</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      class="btn-quick-add" 
+                      (click)="onAddMember(s)"
+                      [disabled]="addingMemberId === s.studentId">
+                      <span *ngIf="addingMemberId === s.studentId">...</span>
+                      <span *ngIf="addingMemberId !== s.studentId">+ Add</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group Full Note -->
+            <div *ngIf="isGroupFull" class="group-full-alert">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Your team is complete with {{ maxGroupSize }} members.</span>
+            </div>
+          </div>
+
+          <!-- Case 2: Student is NOT in a group -->
+          <div *ngIf="!myGroup" class="dock-unassigned-box">
+            <div class="unassigned-prompt-card">
+              <div class="prompt-badge">Action Required</div>
+              <h3 class="prompt-heading">Join or Create a Team</h3>
+              <p class="prompt-text">Create your own team and invite classmates, or wait for a teammate to add you.</p>
+
+              <div class="inline-create-group">
+                <input 
+                  type="text" 
+                  class="create-group-input" 
+                  [(ngModel)]="newGroupName" 
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="Group name (e.g. Team Alpha)"
+                  maxlength="50"
+                  (keydown.enter)="onCreateGroup()">
+                <button 
+                  type="button" 
+                  class="btn btn-primary create-group-submit" 
+                  (click)="onCreateGroup()" 
+                  [disabled]="creatingGroup">
+                  <span *ngIf="creatingGroup">...</span>
+                  <span *ngIf="!creatingGroup">Create</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+    </div>
   </main>
 </div>
 

@@ -77,8 +77,18 @@ public class ClassroomSession {
     }
 
     public boolean hasStudentWithName(String name) {
-        return students.values().stream()
-                .anyMatch(s -> s.getStudentName().equalsIgnoreCase(name.trim()));
+        if (name == null) return false;
+        String normalized = name.trim().replaceAll("\\s+", " ");
+        boolean matchInStudents = students.values().stream()
+                .anyMatch(s -> s.getStudentName() != null &&
+                        s.getStudentName().trim().replaceAll("\\s+", " ").equalsIgnoreCase(normalized));
+        if (matchInStudents) {
+            return true;
+        }
+        return groups.stream()
+                .flatMap(g -> g.getMembers().stream())
+                .anyMatch(m -> m.getStudentName() != null &&
+                        m.getStudentName().trim().replaceAll("\\s+", " ").equalsIgnoreCase(normalized));
     }
 
     public void addStudent(StudentStatus student) {
