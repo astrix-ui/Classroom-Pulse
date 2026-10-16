@@ -27,3 +27,4 @@ ENV ALLOWED_ORIGINS=http://localhost:4200,https://*.vercel.app
 EXPOSE 8080
 
 ENTRYPOINT ["sh", "-c", "java -jar app.jar"]
+
