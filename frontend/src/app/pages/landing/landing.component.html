@@ -1,0 +1,43 @@
+<main class="landing-container">
+  <div class="hero-card card">
+    <div class="logo-badge">
+      <span class="pulse-indicator"></span>
+      <span class="badge-text">Real-Time Classroom Coordination</span>
+    </div>
+
+    <h1 class="hero-title">Classroom Pulse</h1>
+    <p class="hero-description">
+      Instant, synchronized status tracking for live classroom problem solving. 
+      Teachers broadcast questions in real-time, and students signal completion with a single tap.
+    </p>
+
+    <div class="role-selector">
+      <div class="role-card" (click)="goToTeacher()" role="button" tabindex="0" (keydown.enter)="goToTeacher()" (keydown.space)="goToTeacher()" aria-label="Enter as Teacher">
+        <div class="role-icon teacher-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+            <path d="M6 6h10"></path>
+            <path d="M6 10h10"></path>
+          </svg>
+        </div>
+        <h2 class="role-title">I am a Teacher</h2>
+        <p class="role-text">Create a room, publish questions, and view live student completion lights without refreshing.</p>
+        <button type="button" class="btn btn-primary role-btn" (click)="$event.stopPropagation(); goToTeacher()">Create Classroom</button>
+      </div>
+
+      <div class="role-card" (click)="goToStudent()" role="button" tabindex="0" (keydown.enter)="goToStudent()" (keydown.space)="goToStudent()" aria-label="Enter as Student">
+        <div class="role-icon student-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <polyline points="16 11 18 13 22 9"></polyline>
+          </svg>
+        </div>
+        <h2 class="role-title">I am a Student</h2>
+        <p class="role-text">Join an active room with your room code, view questions, and mark when you have solved them.</p>
+        <button type="button" class="btn btn-secondary role-btn" (click)="$event.stopPropagation(); goToStudent()">Join Classroom</button>
+      </div>
+    </div>
+  </div>
+</main>
+

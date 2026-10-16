@@ -1,0 +1,64 @@
+<div class="join-container">
+  <div class="join-card card">
+    <div class="card-header">
+      <a routerLink="/" class="back-link">&larr; Back to Home</a>
+      <h1 class="card-title">Join Classroom</h1>
+      <p class="card-subtitle">Enter the 6-character room code provided by your teacher.</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="error-banner" role="alert">
+      {{ errorMessage }}
+    </div>
+
+    <form [formGroup]="joinForm" (ngSubmit)="onJoin()">
+      <div class="form-group">
+        <label for="roomCodeInput" class="form-label">Room Code</label>
+        <input 
+          id="roomCodeInput"
+          type="text" 
+          formControlName="roomCode" 
+          class="form-input text-code"
+          placeholder="e.g. AB7KQ2" 
+          maxlength="6"
+          autocomplete="off"
+          autocapitalize="characters"
+          (input)="joinForm.patchValue({roomCode: roomCodeControl.value?.toUpperCase()})">
+        <div class="field-error" *ngIf="roomCodeControl.touched && roomCodeControl.errors">
+          <span *ngIf="roomCodeControl.errors['required']">Room code is required.</span>
+          <span *ngIf="roomCodeControl.errors['minlength'] || roomCodeControl.errors['maxlength']">
+            Room code must be exactly 6 characters.
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="studentNameInput" class="form-label">Your Name</label>
+        <input 
+          id="studentNameInput"
+          type="text" 
+          formControlName="studentName" 
+          class="form-input" 
+          placeholder="e.g. Ayush" 
+          maxlength="50"
+          autocomplete="name">
+        <div class="field-error" *ngIf="studentNameControl.touched && studentNameControl.errors">
+          <span *ngIf="studentNameControl.errors['required']">Your name is required.</span>
+          <span *ngIf="studentNameControl.errors['minlength']">Name must be at least 2 characters.</span>
+          <span *ngIf="studentNameControl.errors['maxlength']">Name cannot exceed 50 characters.</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <app-loading-spinner *ngIf="loading" message="Joining room..."></app-loading-spinner>
+        <button 
+          *ngIf="!loading" 
+          type="submit" 
+          class="btn btn-primary join-btn" 
+          [disabled]="joinForm.invalid">
+          Join Room
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+

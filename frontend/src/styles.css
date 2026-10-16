@@ -1,0 +1,176 @@
+/* Minimalist Monotone Design System with Fun Subtle Micro-Animations */
+:root {
+  --bg-page: #fafafa;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f4f4f5;
+  --bg-muted: #e4e4e7;
+
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+  --text-inverted: #fafafa;
+
+  --border-subtle: #f4f4f5;
+  --border-default: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --border-focus: #18181b;
+
+  /* Monotone Accent & Status */
+  --accent: #18181b;
+  --accent-hover: #27272a;
+  
+  --status-pending: #d97706;
+  --status-pending-bg: #fffbeb;
+  --status-pending-text: #b45309;
+
+  --status-completed: #059669;
+  --status-completed-bg: #ecfdf5;
+  --status-completed-text: #047857;
+
+  --status-inactive: #a1a1aa;
+  --status-inactive-bg: #f4f4f5;
+  --status-inactive-text: #71717a;
+
+  --danger: #e11d48;
+  --danger-hover: #be123c;
+
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --shadow-float: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 9999px;
+
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  outline: none;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  outline: none;
+}
+
+/* Card */
+.card {
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s var(--ease-spring), border-color 0.2s var(--ease-spring);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s var(--ease-spring);
+  user-select: none;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  color: var(--text-inverted);
+  border-color: var(--accent);
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background-color: var(--bg-surface);
+  border-color: var(--border-default);
+  color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background-color: #fff1f2;
+  border-color: #fecdd3;
+  color: var(--danger-hover);
+  transform: translateY(-1px);
+}
+
+/* Reconnection Banner */
+.reconnecting-banner {
+  background-color: #18181b;
+  color: #fafafa;
+  padding: 6px 16px;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+  animation: slideDown 0.25s var(--ease-spring);
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}

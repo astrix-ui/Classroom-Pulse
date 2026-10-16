@@ -1,0 +1,328 @@
+<div class="dashboard-shell">
+  <!-- Reconnection Banner -->
+  <div *ngIf="connectionState === 'RECONNECTING'" class="reconnecting-banner" role="status" aria-live="polite">
+    <span>Reconnecting to session... Showing last known status</span>
+  </div>
+
+  <!-- Header Bar -->
+  <header class="dashboard-nav">
+    <div class="nav-left">
+      <span class="brand-text">Classroom Pulse</span>
+      <div class="divider-v"></div>
+      <app-room-code-display [roomCode]="roomCode"></app-room-code-display>
+    </div>
+
+    <div class="nav-right">
+      <app-connection-indicator [state]="connectionState"></app-connection-indicator>
+
+      <button 
+        type="button" 
+        class="btn btn-secondary btn-sm" 
+        (click)="onResetStatus()" 
+        [disabled]="!hasActiveQuestion || resettingStatus || !classroom?.active"
+        title="Reset all student statuses to Pending">
+        {{ resettingStatus ? 'Resetting...' : 'Reset Statuses' }}
+      </button>
+
+      <button 
+        *ngIf="sessionEnded || !classroom?.active"
+        type="button" 
+        class="btn btn-primary btn-sm" 
+        (click)="onGoHome()">
+        Go to Home
+      </button>
+
+      <button 
+        *ngIf="!sessionEnded && classroom?.active"
+        type="button" 
+        class="btn btn-danger btn-sm" 
+        [disabled]="closingClassroom" 
+        (click)="openCloseDialog()">
+        End Session
+      </button>
+    </div>
+  </header>
+
+  <!-- Error alert if any -->
+  <div *ngIf="errorMessage" class="error-banner" role="alert">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Session Ended Banner with Go to Home Option -->
+  <div *ngIf="sessionEnded || !classroom?.active" class="session-ended-card card" role="status">
+    <div class="ended-header">
+      <div class="ended-icon-pill">Session Ended</div>
+      <p class="ended-desc">This classroom session has been concluded. Final student statuses and completion metrics are preserved below.</p>
+    </div>
+    <button type="button" class="btn btn-primary go-home-cta-btn" (click)="onGoHome()">
+      Go to Home
+    </button>
+  </div>
+
+  <!-- Main Body Layout: Main Stage on Left, Compact Student Sidebar on Right -->
+  <div class="dashboard-workspace">
+    <!-- Left: Main Stage -->
+    <main class="main-stage">
+      <!-- Summary Metrics Bar -->
+      <section class="card metrics-card" aria-label="Classroom status overview">
+        <div class="metrics-row">
+          <div class="metric-cell">
+            <span class="metric-num">{{ classroom?.totalStudents || 0 }}</span>
+            <span class="metric-label">Students</span>
+          </div>
+          <div class="metric-cell metric-completed">
+            <span class="metric-num">{{ classroom?.completedCount || 0 }}</span>
+            <span class="metric-label">Completed</span>
+          </div>
+          <div class="metric-cell metric-pending">
+            <span class="metric-num">{{ classroom?.pendingCount || 0 }}</span>
+            <span class="metric-label">Pending</span>
+          </div>
+          <div class="metric-cell">
+            <span class="metric-num">{{ classroom?.completionPercentage || 0 }}%</span>
+            <span class="metric-label">Rate</span>
+          </div>
+        </div>
+
+        <div class="progress-track" role="progressbar" [attr.aria-valuenow]="classroom?.completionPercentage || 0" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-fill" [style.width.%]="classroom?.completionPercentage || 0"></div>
+        </div>
+      </section>
+
+      <!-- Active Question Display -->
+      <section class="card active-q-card" aria-labelledby="active-q-title">
+        <div class="section-header-compact">
+          <div class="title-with-seq">
+            <h2 id="active-q-title" class="section-title">Current Question</h2>
+            <span *ngIf="classroom?.currentQuestion" class="seq-pill">
+              Question #{{ classroom?.currentQuestion?.sequenceNumber }}
+            </span>
+          </div>
+
+          <div *ngIf="classroom?.currentQuestion && classroom?.active && !isEditingQuestion" class="q-actions">
+            <button 
+              type="button" 
+              class="btn-icon" 
+              (click)="onStartEditQuestion()" 
+              title="Edit Question">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span>Edit</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="btn-icon btn-icon-danger" 
+              (click)="openDeleteQuestionDialog()" 
+              title="Delete Question">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- If no question published yet -->
+        <div *ngIf="!classroom?.currentQuestion" class="empty-q-state">
+          <p class="empty-text">No question currently active. Enter a question below to broadcast.</p>
+        </div>
+
+        <!-- If editing question -->
+        <div *ngIf="classroom?.currentQuestion && isEditingQuestion" class="inline-edit-box">
+          <textarea 
+            class="composer-textarea inline-edit-textarea" 
+            rows="2" 
+            [(ngModel)]="editQuestionText" 
+            [ngModelOptions]="{standalone: true}"
+            maxlength="500"
+            placeholder="Edit question text...">
+          </textarea>
+          <div class="inline-edit-actions">
+            <span class="inline-char-count">{{ editQuestionText.length }}/500</span>
+            <div class="inline-btn-group">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="onCancelEditQuestion()" [disabled]="savingEditQuestion">Cancel</button>
+              <button type="button" class="btn btn-primary btn-sm" (click)="onSaveEditQuestion()" [disabled]="!editQuestionText.trim() || savingEditQuestion">
+                {{ savingEditQuestion ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- If question is published and not editing -->
+        <div *ngIf="classroom?.currentQuestion && !isEditingQuestion" class="live-q-box" aria-live="polite">
+          <p class="live-q-text">{{ classroom?.currentQuestion?.questionText }}</p>
+          <span class="live-q-timestamp">
+            Broadcast at {{ classroom?.currentQuestion?.publishedAt | date:'shortTime' }}
+          </span>
+        </div>
+      </section>
+
+      <!-- Question Composer -->
+      <section class="card composer-card" aria-labelledby="composer-title">
+        <div class="section-header-compact">
+          <h2 id="composer-title" class="section-title">
+            {{ hasActiveQuestion ? 'Next Question' : 'Broadcast Question' }}
+          </h2>
+          <span class="char-pill" [ngClass]="{'char-pill-warn': charCount > 450}">
+            {{ charCount }}/500
+          </span>
+        </div>
+
+        <form [formGroup]="questionForm" (ngSubmit)="onPublishQuestion()">
+          <div class="textarea-wrap">
+            <textarea 
+              id="questionTextarea"
+              formControlName="questionText"
+              rows="3" 
+              class="composer-textarea" 
+              placeholder="Type your question here (e.g., Explain the difference between process and thread)..."
+              maxlength="500"
+              [readonly]="!classroom?.active || submittingQuestion">
+            </textarea>
+          </div>
+
+          <div class="composer-toolbar">
+            <span class="validation-text" *ngIf="questionTextControl.touched && questionTextControl.errors?.['required']">
+              Question cannot be blank.
+            </span>
+            <button 
+              type="submit" 
+              class="btn btn-primary" 
+              [disabled]="questionForm.invalid || submittingQuestion || !classroom?.active">
+              <span *ngIf="submittingQuestion">Broadcasting...</span>
+              <span *ngIf="!submittingQuestion">{{ hasActiveQuestion ? 'Publish Next Question' : 'Broadcast Question' }}</span>
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Right: Student Live Status Sidebar (Compact for 40 students) -->
+    <aside class="sidebar-roster card" aria-labelledby="sidebar-roster-title">
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <div class="title-with-badge">
+            <h2 id="sidebar-roster-title" class="sidebar-title">Student Live Status</h2>
+            <span class="count-badge">{{ students.length }}</span>
+          </div>
+        </div>
+
+        <!-- Filter tabs for fast scanning 40 students -->
+        <div class="filter-pills" role="tablist">
+          <button 
+            type="button" 
+            class="filter-pill" 
+            [class.active]="filterStatus === 'ALL'" 
+            (click)="setFilter('ALL')">
+            All ({{ students.length }})
+          </button>
+          <button 
+            type="button" 
+            class="filter-pill" 
+            [class.active]="filterStatus === 'COMPLETED'" 
+            (click)="setFilter('COMPLETED')">
+            Done ({{ classroom?.completedCount || 0 }})
+          </button>
+          <button 
+            type="button" 
+            class="filter-pill" 
+            [class.active]="filterStatus === 'PENDING'" 
+            (click)="setFilter('PENDING')">
+            Pending ({{ classroom?.pendingCount || 0 }})
+          </button>
+        </div>
+
+        <!-- Mini Search Bar -->
+        <div class="search-wrap" *ngIf="students.length > 5">
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="Search students..." 
+            [(ngModel)]="searchQuery" 
+            [ngModelOptions]="{standalone: true}">
+        </div>
+      </div>
+
+      <!-- Compact Student List / Grid -->
+      <div class="sidebar-body">
+        <!-- Empty State without emojis -->
+        <div *ngIf="students.length === 0" class="empty-students-box">
+          <svg class="empty-svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <p class="empty-title">Waiting for students</p>
+          <p class="empty-sub">Share room code <strong>{{ roomCode }}</strong> to join.</p>
+        </div>
+
+        <!-- Compact Student Rows for 40 students -->
+        <div *ngIf="students.length > 0" class="compact-student-list" aria-live="polite">
+          <div 
+            *ngFor="let student of filteredStudents; let idx = index; trackBy: trackByStudentId" 
+            class="compact-student-row"
+            [ngClass]="{
+              'row-completed': student.status === 'COMPLETED' && hasActiveQuestion,
+              'row-pending': student.status === 'PENDING' && hasActiveQuestion,
+              'row-inactive': !hasActiveQuestion
+            }">
+            
+            <div class="student-cell-left">
+              <span class="index-badge">{{ idx + 1 }}</span>
+              <span class="status-dot" [ngClass]="{
+                'dot-completed': student.status === 'COMPLETED' && hasActiveQuestion,
+                'dot-pending': student.status === 'PENDING' && hasActiveQuestion,
+                'dot-inactive': !hasActiveQuestion
+              }"></span>
+              <span class="student-name-text" [title]="student.studentName">{{ student.studentName }}</span>
+            </div>
+
+            <div class="student-cell-right">
+              <span 
+                class="tag-status" 
+                [ngClass]="{
+                  'tag-completed': student.status === 'COMPLETED' && hasActiveQuestion,
+                  'tag-pending': student.status === 'PENDING' && hasActiveQuestion,
+                  'tag-inactive': !hasActiveQuestion
+                }">
+                <ng-container *ngIf="!hasActiveQuestion">Waiting</ng-container>
+                <ng-container *ngIf="hasActiveQuestion && student.status === 'COMPLETED'">Done</ng-container>
+                <ng-container *ngIf="hasActiveQuestion && student.status === 'PENDING'">Pending</ng-container>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Confirmation Dialog for Ending Session -->
+<app-confirmation-dialog
+  [isOpen]="showCloseConfirm"
+  title="End Classroom Session?"
+  message="Are you sure you want to end this classroom session? Connected students will be notified and this session will be concluded."
+  confirmText="End Session"
+  cancelText="Cancel"
+  [isDanger]="true"
+  (confirm)="confirmCloseClassroom()"
+  (cancel)="cancelCloseDialog()">
+</app-confirmation-dialog>
+
+<!-- Confirmation Dialog for Deleting Question -->
+<app-confirmation-dialog
+  [isOpen]="showDeleteQuestionConfirm"
+  title="Delete Question?"
+  message="Are you sure you want to delete this question? Connected students will return to the waiting state and student statuses will reset to Pending."
+  confirmText="Delete Question"
+  cancelText="Cancel"
+  [isDanger]="true"
+  (confirm)="confirmDeleteQuestion()"
+  (cancel)="cancelDeleteQuestionDialog()">
+</app-confirmation-dialog>

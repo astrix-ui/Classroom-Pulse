@@ -1,0 +1,5 @@
+<div class="status-container" [ngClass]="'status-' + mode" role="status">
+  <span class="light" [attr.aria-label]="statusText"></span>
+  <span class="label" *ngIf="showText">{{ statusText }}</span>
+</div>
+

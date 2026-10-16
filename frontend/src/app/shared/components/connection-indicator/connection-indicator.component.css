@@ -1,0 +1,68 @@
+.indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background-color: var(--bg-surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  transition: all 0.2s var(--ease-spring);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: currentColor;
+}
+
+.state-connected {
+  color: #059669;
+  border-color: #a7f3d0;
+  background-color: #ecfdf5;
+}
+.state-connected .dot {
+  background-color: #10b981;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
+}
+
+.state-warning {
+  color: #b45309;
+  border-color: #fde68a;
+  background-color: #fffbeb;
+}
+.state-warning .dot {
+  background-color: #f59e0b;
+  animation: pulseWarning 1.4s ease-in-out infinite;
+}
+
+.state-disconnected {
+  color: #71717a;
+  border-color: var(--border-default);
+  background-color: var(--bg-subtle);
+}
+.state-disconnected .dot {
+  background-color: #a1a1aa;
+}
+
+@keyframes pulseWarning {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state-warning .dot {
+    animation: none;
+  }
+}

@@ -1,0 +1,125 @@
+<div class="student-room-container">
+  <!-- Reconnecting banner -->
+  <div *ngIf="connectionState === 'RECONNECTING'" class="reconnecting-banner" role="status" aria-live="polite">
+    <span>Reconnecting to classroom... Showing latest status</span>
+  </div>
+
+  <!-- Header -->
+  <header class="room-header">
+    <div class="header-left">
+      <div class="student-avatar">{{ studentName.charAt(0).toUpperCase() }}</div>
+      <div class="student-meta">
+        <h1 class="student-name">{{ studentName }}</h1>
+        <div class="room-code-tag">Room: <strong>{{ roomCode }}</strong></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <app-connection-indicator [state]="connectionState"></app-connection-indicator>
+      <button 
+        type="button" 
+        class="btn btn-outline btn-sm leave-btn" 
+        (click)="onLeaveRoom()"
+        title="Leave this classroom session">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Leave</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Error alert if any -->
+  <div *ngIf="errorMessage" class="error-banner" role="alert">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Classroom closed alert -->
+  <div *ngIf="!isClassroomActive" class="closed-card card" role="alert" aria-live="assertive">
+    <div class="closed-icon-wrap">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+      </svg>
+    </div>
+    <h2>Classroom Session Ended</h2>
+    <p>The teacher has ended this classroom session. Thank you for participating!</p>
+    <a routerLink="/" class="btn btn-secondary return-home-btn">Return to Home</a>
+  </div>
+
+  <!-- Active Session Content -->
+  <main *ngIf="isClassroomActive" class="room-content">
+    <!-- Question Card -->
+    <section class="card question-card" aria-labelledby="question-heading">
+      <div class="card-top-bar">
+        <span class="section-label" id="question-heading">
+          {{ currentQuestion ? 'Question #' + currentQuestion.sequenceNumber : 'Active Question' }}
+        </span>
+        <app-status-light 
+          [status]="myStatus" 
+          [hasActiveQuestion]="!!currentQuestion" 
+          [connected]="connectionState === 'CONNECTED'">
+        </app-status-light>
+      </div>
+
+      <!-- If no question published yet -->
+      <div *ngIf="!currentQuestion" class="waiting-box" aria-live="polite">
+        <div class="pulsing-clock">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <h2 class="waiting-title">Waiting for Question</h2>
+        <p class="waiting-desc">The teacher has not published a question yet. It will appear on your screen automatically once posted.</p>
+      </div>
+
+      <!-- If question is published -->
+      <div *ngIf="currentQuestion" class="question-display" aria-live="polite">
+        <p class="question-text">{{ currentQuestion.questionText }}</p>
+      </div>
+    </section>
+
+    <!-- Action Section with Large COMPLETED Button -->
+    <section class="action-card card" aria-label="Student Response Action">
+      <div *ngIf="isCompleted" class="completed-confirmation" aria-live="polite">
+        <div class="check-circle">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2 class="confirmation-title">You're All Done</h2>
+        <p class="confirmation-text">Your teacher has been notified. Sit tight until the next question is published.</p>
+      </div>
+
+      <button 
+        *ngIf="!isCompleted"
+        type="button" 
+        class="huge-complete-btn"
+        [disabled]="!canComplete"
+        (click)="onMarkCompleted()"
+        [attr.aria-label]="currentQuestion ? 'Mark question as completed' : 'Waiting for question'">
+        <span *ngIf="submittingCompletion">Saving...</span>
+        <span *ngIf="!submittingCompletion && currentQuestion">I'M DONE</span>
+        <span *ngIf="!submittingCompletion && !currentQuestion">WAITING FOR QUESTION</span>
+      </button>
+
+      <p class="touch-hint" *ngIf="currentQuestion && !isCompleted">
+        Tap the button once you have finished thinking through or solving this question.
+      </p>
+    </section>
+  </main>
+</div>
+
+<!-- Confirmation Dialog for Leaving Room -->
+<app-confirmation-dialog
+  [isOpen]="showLeaveConfirm"
+  title="Leave Classroom?"
+  message="Are you sure you want to leave this session? You will be removed from the active student roster."
+  confirmText="Leave Room"
+  cancelText="Stay"
+  [isDanger]="true"
+  (confirm)="confirmLeaveRoom()"
+  (cancel)="cancelLeaveRoom()">
+</app-confirmation-dialog>

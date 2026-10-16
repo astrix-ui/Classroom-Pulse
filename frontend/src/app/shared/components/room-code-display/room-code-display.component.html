@@ -1,0 +1,16 @@
+<div class="code-container">
+  <span class="code-label" *ngIf="showLabel">Room Code:</span>
+  <div class="code-box">
+    <span class="code-text" [attr.aria-label]="'Room code ' + roomCode">{{ roomCode }}</span>
+    <button 
+      type="button" 
+      class="copy-btn" 
+      (click)="copyCode()" 
+      [attr.aria-label]="copied ? 'Room code copied' : 'Copy room code to clipboard'"
+      [title]="copied ? 'Copied!' : 'Copy to clipboard'">
+      <span *ngIf="!copied" class="btn-text">Copy</span>
+      <span *ngIf="copied" class="copied-indicator">Copied!</span>
+    </button>
+  </div>
+</div>
+

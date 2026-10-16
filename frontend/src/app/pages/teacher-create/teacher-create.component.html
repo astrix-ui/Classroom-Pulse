@@ -1,0 +1,53 @@
+<div class="create-container">
+  <div class="create-card card">
+    <div class="card-header">
+      <a routerLink="/" class="back-link">&larr; Back to Home</a>
+      <h1 class="card-title">Create a Classroom</h1>
+      <p class="card-subtitle">Generate a new live session for your students to join.</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="error-banner" role="alert">
+      {{ errorMessage }}
+    </div>
+
+    <div class="card-content">
+      <div class="features-list">
+        <div class="feature-item">
+          <span class="feature-bullet">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+          <span>Instant 6-character room code generated</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-bullet">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+          <span>Live question broadcasting to all devices</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-bullet">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+          <span>Real-time completion status lights</span>
+        </div>
+      </div>
+
+      <div class="action-section">
+        <app-loading-spinner *ngIf="loading" message="Creating session..."></app-loading-spinner>
+        <button 
+          *ngIf="!loading" 
+          type="button" 
+          class="btn btn-primary create-btn" 
+          (click)="onCreateRoom()">
+          Start New Classroom Session
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

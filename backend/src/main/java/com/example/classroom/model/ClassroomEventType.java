@@ -1,0 +1,14 @@
+package com.example.classroom.model;
+
+public enum ClassroomEventType {
+    STUDENT_JOINED,
+    STUDENT_LEFT,
+    STUDENT_STATUS_CHANGED,
+    QUESTION_PUBLISHED,
+    QUESTION_UPDATED,
+    QUESTION_DELETED,
+    CLASSROOM_RESET,
+    CLASSROOM_CLOSED,
+    CLASSROOM_STATE_UPDATED
+}
+

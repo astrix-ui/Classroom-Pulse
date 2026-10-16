@@ -1,0 +1,85 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { ClassroomSession, CreateClassroomResponse } from '../models/classroom.model';
+import { JoinStudentResponse } from '../models/student-status.model';
+import { QuestionDto } from '../models/question.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ClassroomApiService {
+
+  private readonly baseUrl = environment.apiBaseUrl;
+
+  constructor(private http: HttpClient) {}
+
+  createClassroom(): Observable<CreateClassroomResponse> {
+    return this.http.post<CreateClassroomResponse>(`${this.baseUrl}/classrooms`, {});
+  }
+
+  getClassroom(roomCode: string): Observable<ClassroomSession> {
+    return this.http.get<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}`);
+  }
+
+  joinStudent(roomCode: string, studentName: string): Observable<JoinStudentResponse> {
+    return this.http.post<JoinStudentResponse>(`${this.baseUrl}/classrooms/${roomCode}/students`, {
+      studentName
+    });
+  }
+
+  publishQuestion(roomCode: string, teacherToken: string, questionText: string): Observable<QuestionDto> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.post<QuestionDto>(`${this.baseUrl}/classrooms/${roomCode}/questions`, {
+      questionText
+    }, { headers });
+  }
+
+  completeQuestion(roomCode: string, studentId: string, questionId: string): Observable<ClassroomSession> {
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/students/${studentId}/complete`, {
+      questionId
+    });
+  }
+
+  resetClassroom(roomCode: string, teacherToken: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/reset`, {}, { headers });
+  }
+
+  leaveRoom(roomCode: string, studentId: string): Observable<ClassroomSession> {
+    return this.http.delete<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/students/${studentId}`);
+  }
+
+  editQuestion(roomCode: string, teacherToken: string, questionText: string): Observable<QuestionDto> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.put<QuestionDto>(`${this.baseUrl}/classrooms/${roomCode}/questions`, {
+      questionText
+    }, { headers });
+  }
+
+  deleteQuestion(roomCode: string, teacherToken: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.delete<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/questions`, { headers });
+  }
+
+  closeClassroom(roomCode: string, teacherToken: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.post<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/close`, {}, { headers });
+  }
+
+  health(): Observable<{ status: string }> {
+    return this.http.get<{ status: string }>(`${this.baseUrl}/health`);
+  }
+}
+
