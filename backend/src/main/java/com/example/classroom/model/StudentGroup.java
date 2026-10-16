@@ -7,7 +7,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class StudentGroup {
     private final String groupId;
-    private final String groupName;
+    private volatile String groupName;
     private final String creatorStudentId;
     private final String creatorStudentName;
     private final Instant createdAt;
@@ -27,6 +27,10 @@ public class StudentGroup {
 
     public String getGroupName() {
         return groupName;
+    }
+
+    public synchronized void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     public String getCreatorStudentId() {

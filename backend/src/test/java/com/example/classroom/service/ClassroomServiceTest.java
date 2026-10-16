@@ -547,5 +547,66 @@ class ClassroomServiceTest {
         assertNotNull(reconnectedAlice.getStudentId());
         assertEquals("Alice", reconnectedAlice.getStudentName());
     }
+
+    @Test
+    @DisplayName("Teacher can kick a student from the room and disbands group if empty")
+    void testTeacherKickStudent() {
+        CreateClassroomResponse room = service.createClassroom();
+        service.configureGroups(room.getRoomCode(), room.getTeacherToken(), true, 3);
+
+        JoinStudentResponse alice = service.joinStudent(room.getRoomCode(), "Alice");
+        JoinStudentResponse bob = service.joinStudent(room.getRoomCode(), "Bob");
+
+        ClassroomStateResponse groupState = service.createGroup(room.getRoomCode(), alice.getStudentId(), "Team A");
+        String groupId = groupState.getGroups().get(0).getGroupId();
+        service.addMemberToGroup(room.getRoomCode(), groupId, alice.getStudentId(), bob.getStudentId());
+
+        // Invalid teacher token check
+        assertThrows(UnauthorizedTeacherException.class, () ->
+                service.kickStudent(room.getRoomCode(), "wrong-token", alice.getStudentId()));
+
+        // Kick Alice
+        ClassroomStateResponse afterAliceKicked = service.kickStudent(room.getRoomCode(), room.getTeacherToken(), alice.getStudentId());
+        assertEquals(1, afterAliceKicked.getStudents().size());
+        assertEquals("Bob", afterAliceKicked.getStudents().get(0).getStudentName());
+        assertEquals(1, afterAliceKicked.getGroups().get(0).getMembers().size());
+
+        // Kick Bob - group should be removed since it becomes empty
+        ClassroomStateResponse afterBobKicked = service.kickStudent(room.getRoomCode(), room.getTeacherToken(), bob.getStudentId());
+        assertEquals(0, afterBobKicked.getStudents().size());
+        assertEquals(0, afterBobKicked.getGroups().size());
+
+        // Non-existent student check
+        assertThrows(StudentNotFoundException.class, () ->
+                service.kickStudent(room.getRoomCode(), room.getTeacherToken(), "non-existent-id"));
+    }
+
+    @Test
+    @DisplayName("Teacher can rename a group and synchronizes student group names")
+    void testTeacherRenameGroup() {
+        CreateClassroomResponse room = service.createClassroom();
+        service.configureGroups(room.getRoomCode(), room.getTeacherToken(), true, 3);
+
+        JoinStudentResponse alice = service.joinStudent(room.getRoomCode(), "Alice");
+        ClassroomStateResponse groupState = service.createGroup(room.getRoomCode(), alice.getStudentId(), "Alpha");
+        String groupId = groupState.getGroups().get(0).getGroupId();
+
+        // Invalid teacher token
+        assertThrows(UnauthorizedTeacherException.class, () ->
+                service.renameGroup(room.getRoomCode(), "wrong-token", groupId, "Beta"));
+
+        // Rename group
+        ClassroomStateResponse renamed = service.renameGroup(room.getRoomCode(), room.getTeacherToken(), groupId, "Bravo Squad");
+        assertEquals("Bravo Squad", renamed.getGroups().get(0).getGroupName());
+        assertEquals("Bravo Squad", renamed.getStudents().get(0).getGroupName());
+
+        // Blank name check
+        assertThrows(IllegalArgumentException.class, () ->
+                service.renameGroup(room.getRoomCode(), room.getTeacherToken(), groupId, "   "));
+
+        // Name exceeding limit check
+        assertThrows(IllegalArgumentException.class, () ->
+                service.renameGroup(room.getRoomCode(), room.getTeacherToken(), groupId, "A".repeat(51)));
+    }
 }
 

@@ -322,11 +322,59 @@
         <div *ngIf="isGroupsEnabled && groups.length > 0" class="groups-grid">
           <div *ngFor="let g of groups" class="group-card-item">
             <div class="group-card-header">
-              <div class="group-card-title-wrap">
+              <!-- Default group title mode -->
+              <div *ngIf="editingGroupId !== g.groupId" class="group-card-title-wrap">
                 <span class="group-card-name">{{ g.groupName }}</span>
+                <button 
+                  *ngIf="classroom?.active" 
+                  type="button" 
+                  class="btn-edit-group-name" 
+                  (click)="onStartEditGroup(g)" 
+                  [title]="'Rename ' + g.groupName"
+                  aria-label="Rename group">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
                 <span class="group-capacity-tag" [class.capacity-full]="g.members.length >= maxGroupSize">
                   {{ g.members.length }}/{{ maxGroupSize }} {{ g.members.length >= maxGroupSize ? 'Full' : 'Open' }}
                 </span>
+              </div>
+
+              <!-- Inline Rename Mode -->
+              <div *ngIf="editingGroupId === g.groupId" class="group-rename-row">
+                <input 
+                  type="text" 
+                  class="group-rename-input" 
+                  [(ngModel)]="editingGroupName" 
+                  [ngModelOptions]="{standalone: true}"
+                  maxlength="50"
+                  (keydown.enter)="onSaveGroupName(g.groupId)"
+                  (keydown.escape)="onCancelEditGroup()"
+                  [disabled]="savingGroupName"
+                  placeholder="New group name...">
+                <button 
+                  type="button" 
+                  class="btn-icon-rename btn-icon-confirm" 
+                  (click)="onSaveGroupName(g.groupId)" 
+                  [disabled]="savingGroupName || !editingGroupName.trim()"
+                  title="Save Name">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
+                <button 
+                  type="button" 
+                  class="btn-icon-rename" 
+                  (click)="onCancelEditGroup()" 
+                  [disabled]="savingGroupName"
+                  title="Cancel">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -531,6 +579,20 @@
                 <ng-container *ngIf="hasActiveQuestion && student.status === 'COMPLETED'">Done</ng-container>
                 <ng-container *ngIf="hasActiveQuestion && student.status === 'PENDING'">Pending</ng-container>
               </span>
+              <button 
+                *ngIf="classroom?.active"
+                type="button" 
+                class="student-kick-btn" 
+                (click)="$event.stopPropagation(); openKickStudentDialog(student)" 
+                [title]="'Kick ' + student.studentName + ' from room'"
+                aria-label="Kick student">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="18" y1="8" x2="23" y2="13"></line>
+                  <line x1="23" y1="8" x2="18" y2="13"></line>
+                </svg>
+              </button>
               <span class="row-arrow" aria-hidden="true">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="9 18 15 12 9 6"></polyline>
@@ -621,6 +683,13 @@
 
     <!-- Modal Footer -->
     <div class="minimal-modal-footer">
+      <button 
+        *ngIf="classroom?.active"
+        type="button" 
+        class="btn btn-danger btn-sm" 
+        (click)="openKickStudentDialog(selectedStudent)">
+        Kick from Room
+      </button>
       <button type="button" class="btn btn-secondary btn-sm" (click)="onCloseStudentModal()">
         Close
       </button>
@@ -650,4 +719,16 @@
   [isDanger]="true"
   (confirm)="confirmDeleteQuestion()"
   (cancel)="cancelDeleteQuestionDialog()">
+</app-confirmation-dialog>
+
+<!-- Confirmation Dialog for Kicking Student -->
+<app-confirmation-dialog
+  [isOpen]="showKickConfirm"
+  [title]="'Kick ' + (studentToKick?.studentName || 'Student') + '?'"
+  [message]="'Are you sure you want to remove ' + (studentToKick?.studentName || 'this student') + ' from the room? They will be disconnected immediately and returned to the join screen.'"
+  confirmText="Kick Student"
+  cancelText="Cancel"
+  [isDanger]="true"
+  (confirm)="confirmKickStudent()"
+  (cancel)="cancelKickDialog()">
 </app-confirmation-dialog>

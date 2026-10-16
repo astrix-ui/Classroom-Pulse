@@ -143,5 +143,21 @@ export class ClassroomApiService {
       studentId
     }, { headers });
   }
+
+  kickStudent(roomCode: string, teacherToken: string, studentId: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.delete<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/students/${studentId}/kick`, { headers });
+  }
+
+  renameGroup(roomCode: string, teacherToken: string, groupId: string, groupName: string): Observable<ClassroomSession> {
+    const headers = new HttpHeaders({
+      'X-Teacher-Token': teacherToken
+    });
+    return this.http.put<ClassroomSession>(`${this.baseUrl}/classrooms/${roomCode}/groups/${groupId}/name`, {
+      groupName
+    }, { headers });
+  }
 }
 

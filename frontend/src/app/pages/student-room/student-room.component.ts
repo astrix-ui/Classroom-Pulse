@@ -198,6 +198,15 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
   private loadClassroom(): void {
     this.apiService.getClassroom(this.roomCode).subscribe({
       next: (data) => {
+        if (this.studentId && Array.isArray(data?.students)) {
+          const stillInRoom = data.students.some(s => s.studentId === this.studentId);
+          if (!stillInRoom) {
+            this.sessionStorageService.clearStudentSession(this.roomCode);
+            this.toastService.warning('You have been removed from the session by the teacher.');
+            this.router.navigate(['/student/join']);
+            return;
+          }
+        }
         this.classroom = data;
         this.lastKnownGroupsEnabled = !!data?.groupsEnabled;
         this.cdr.markForCheck();
@@ -227,6 +236,17 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((event: WebSocketEvent<ClassroomSession>) => {
         if (event && event.payload) {
+          // If the student was kicked by the teacher, immediately clear session & redirect
+          if (this.studentId && Array.isArray(event.payload.students)) {
+            const stillInRoom = event.payload.students.some(s => s.studentId === this.studentId);
+            if (!stillInRoom) {
+              this.sessionStorageService.clearStudentSession(this.roomCode);
+              this.toastService.warning('You have been removed from the session by the teacher.');
+              this.router.navigate(['/student/join']);
+              return;
+            }
+          }
+
           const prevQuestionId = this.classroom?.currentQuestion?.questionId;
           const prevGroupsEnabled = this.lastKnownGroupsEnabled ?? !!this.classroom?.groupsEnabled;
           const nextGroupsEnabled = !!event.payload.groupsEnabled;
@@ -255,12 +275,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
     this.socketService.reconnected$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        this.apiService.getClassroom(this.roomCode).subscribe({
-          next: (data) => {
-            this.classroom = data;
-            this.cdr.markForCheck();
-          }
-        });
+        this.loadClassroom();
       });
   }
 

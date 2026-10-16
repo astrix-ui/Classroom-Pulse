@@ -643,5 +643,87 @@ public class ClassroomService {
             return state;
         }
     }
+
+    public ClassroomStateResponse kickStudent(String roomCode, String teacherToken, String studentId) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+        verifyTeacherToken(session, teacherToken);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        synchronized (session) {
+            StudentStatus student = session.getStudent(studentId);
+            if (student == null) {
+                throw new StudentNotFoundException(studentId);
+            }
+
+            boolean groupUpdated = false;
+            for (StudentGroup g : new ArrayList<>(session.getGroups())) {
+                if (g.hasMember(studentId)) {
+                    g.removeMember(studentId);
+                    groupUpdated = true;
+                    if (g.getMemberCount() == 0) {
+                        session.removeGroup(g.getGroupId());
+                    }
+                }
+            }
+
+            session.removeStudent(studentId);
+            ClassroomStateResponse state = toSafeState(session);
+
+            broadcastEvent(ClassroomEventType.STUDENT_LEFT, session.getRoomCode(), state);
+            if (groupUpdated) {
+                broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            }
+
+            log.info("Teacher kicked student {} ({}) from room {}", student.getStudentName(), studentId, roomCode);
+            return state;
+        }
+    }
+
+    public ClassroomStateResponse renameGroup(String roomCode, String teacherToken, String groupId, String newGroupName) {
+        ClassroomSession session = getSessionOrThrow(roomCode);
+        verifyTeacherToken(session, teacherToken);
+
+        if (!session.isActive()) {
+            throw new InvalidClassroomStateException("Classroom session is closed");
+        }
+
+        if (newGroupName == null || newGroupName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Group name cannot be blank");
+        }
+
+        String cleanName = newGroupName.trim().replaceAll("\\s+", " ");
+        if (cleanName.length() > 50) {
+            throw new IllegalArgumentException("Group name cannot exceed 50 characters");
+        }
+
+        synchronized (session) {
+            StudentGroup group = session.findGroupById(groupId);
+            if (group == null) {
+                throw new IllegalArgumentException("Group not found");
+            }
+
+            boolean nameExists = session.getGroups().stream()
+                    .anyMatch(g -> !g.getGroupId().equals(groupId) && g.getGroupName().equalsIgnoreCase(cleanName));
+            if (nameExists) {
+                throw new IllegalArgumentException("A group with name '" + cleanName + "' already exists");
+            }
+
+            group.setGroupName(cleanName);
+
+            for (StudentStatus s : session.getStudents().values()) {
+                if (groupId.equals(s.getGroupId())) {
+                    s.setGroupName(cleanName);
+                }
+            }
+
+            ClassroomStateResponse state = toSafeState(session);
+            broadcastEvent(ClassroomEventType.GROUPS_UPDATED, session.getRoomCode(), state);
+            log.info("Teacher renamed group {} to '{}' in room {}", groupId, cleanName, roomCode);
+            return state;
+        }
+    }
 }
 

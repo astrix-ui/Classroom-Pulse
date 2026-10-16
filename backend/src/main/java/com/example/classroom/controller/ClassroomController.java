@@ -209,5 +209,45 @@ public class ClassroomController {
                 roomCode, teacherToken, groupId, request.getStudentId());
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/classrooms/{roomCode}/students/{studentId}/kick")
+    public ResponseEntity<ClassroomStateResponse> kickStudent(
+            @PathVariable String roomCode,
+            @PathVariable String studentId,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken) {
+        ClassroomStateResponse response = classroomService.kickStudent(roomCode, teacherToken, studentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/students/{studentId}/kick")
+    public ResponseEntity<ClassroomStateResponse> kickStudentPost(
+            @PathVariable String roomCode,
+            @PathVariable String studentId,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken) {
+        ClassroomStateResponse response = classroomService.kickStudent(roomCode, teacherToken, studentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/classrooms/{roomCode}/groups/{groupId}/name")
+    public ResponseEntity<ClassroomStateResponse> renameGroup(
+            @PathVariable String roomCode,
+            @PathVariable String groupId,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken,
+            @Valid @RequestBody RenameGroupRequest request) {
+        ClassroomStateResponse response = classroomService.renameGroup(
+                roomCode, teacherToken, groupId, request.getGroupName());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classrooms/{roomCode}/groups/{groupId}/rename")
+    public ResponseEntity<ClassroomStateResponse> renameGroupPost(
+            @PathVariable String roomCode,
+            @PathVariable String groupId,
+            @RequestHeader(value = "X-Teacher-Token", required = false) String teacherToken,
+            @Valid @RequestBody RenameGroupRequest request) {
+        ClassroomStateResponse response = classroomService.renameGroup(
+                roomCode, teacherToken, groupId, request.getGroupName());
+        return ResponseEntity.ok(response);
+    }
 }
 

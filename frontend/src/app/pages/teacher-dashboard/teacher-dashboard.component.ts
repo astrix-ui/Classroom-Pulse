@@ -567,6 +567,97 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  // Group Renaming State & Methods
+  editingGroupId: string | null = null;
+  editingGroupName = '';
+  savingGroupName = false;
+
+  onStartEditGroup(group: StudentGroupDto): void {
+    if (!this.classroom?.active) return;
+    this.editingGroupId = group.groupId;
+    this.editingGroupName = group.groupName;
+    this.cdr.markForCheck();
+  }
+
+  onCancelEditGroup(): void {
+    this.editingGroupId = null;
+    this.editingGroupName = '';
+    this.cdr.markForCheck();
+  }
+
+  onSaveGroupName(groupId: string): void {
+    if (!this.editingGroupName || !this.editingGroupName.trim() || this.savingGroupName || !this.classroom?.active) return;
+    const newName = this.editingGroupName.trim();
+    this.savingGroupName = true;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.renameGroup(this.roomCode, this.teacherToken, groupId, newName).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.editingGroupId = null;
+        this.editingGroupName = '';
+        this.savingGroupName = false;
+        this.toastService.success(`Group renamed to "${newName}"`);
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.savingGroupName = false;
+        this.errorMessage = err?.error?.message || 'Failed to rename group.';
+        this.toastService.error(this.errorMessage);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  // Kick Student State & Methods
+  showKickConfirm = false;
+  studentToKick: StudentDto | null = null;
+  kickingStudent = false;
+
+  openKickStudentDialog(student: StudentDto | null): void {
+    if (!student || !this.classroom?.active) return;
+    this.studentToKick = student;
+    this.showKickConfirm = true;
+    this.cdr.markForCheck();
+  }
+
+  cancelKickDialog(): void {
+    this.showKickConfirm = false;
+    this.studentToKick = null;
+    this.cdr.markForCheck();
+  }
+
+  confirmKickStudent(): void {
+    if (!this.studentToKick || this.kickingStudent || !this.classroom?.active) return;
+
+    const target = this.studentToKick;
+    this.kickingStudent = true;
+    this.showKickConfirm = false;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.apiService.kickStudent(this.roomCode, this.teacherToken, target.studentId).subscribe({
+      next: (updated) => {
+        this.classroom = updated;
+        this.kickingStudent = false;
+        if (this.selectedStudent?.studentId === target.studentId) {
+          this.selectedStudent = null;
+        }
+        this.studentToKick = null;
+        this.toastService.info(`${target.studentName} was removed from the room`);
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.kickingStudent = false;
+        this.studentToKick = null;
+        this.errorMessage = err?.error?.message || 'Failed to remove student from the room.';
+        this.toastService.error(this.errorMessage);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   isQuestionAnsweredByStudent(student: StudentDto | null, questionId: string): boolean {
     if (!student || !student.answeredQuestions) return false;
     return !!student.answeredQuestions[questionId];
