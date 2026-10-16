@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/
 import { Router } from '@angular/router';
 import { ClassroomApiService } from '../../core/services/classroom-api.service';
 import { SessionStorageService } from '../../core/services/session-storage.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-teacher-create',
@@ -16,6 +17,7 @@ export class TeacherCreateComponent {
   constructor(
     private apiService: ClassroomApiService,
     private sessionStorageService: SessionStorageService,
+    public themeService: ThemeService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}

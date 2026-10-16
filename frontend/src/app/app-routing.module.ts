@@ -6,6 +6,7 @@ import { TeacherCreateComponent } from './pages/teacher-create/teacher-create.co
 import { TeacherDashboardComponent } from './pages/teacher-dashboard/teacher-dashboard.component';
 import { StudentJoinComponent } from './pages/student-join/student-join.component';
 import { StudentRoomComponent } from './pages/student-room/student-room.component';
+import { AboutComponent } from './pages/about/about.component';
 import { NotFoundComponent } from './pages/not-found/not-found.component';
 
 import { teacherGuard } from './core/guards/teacher.guard';
@@ -13,6 +14,7 @@ import { studentGuard } from './core/guards/student.guard';
 
 const routes: Routes = [
   { path: '', component: LandingComponent, pathMatch: 'full' },
+  { path: 'about', component: AboutComponent },
   { path: 'teacher/create', component: TeacherCreateComponent },
   { path: 'teacher/:roomCode', component: TeacherDashboardComponent, canActivate: [teacherGuard] },
   { path: 'student/join', component: StudentJoinComponent },

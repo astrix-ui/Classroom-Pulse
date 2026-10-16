@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-landing',
@@ -8,7 +9,10 @@ import { Router } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LandingComponent {
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    public themeService: ThemeService
+  ) {}
 
   goToTeacher(): void {
     this.router.navigate(['/teacher/create']);

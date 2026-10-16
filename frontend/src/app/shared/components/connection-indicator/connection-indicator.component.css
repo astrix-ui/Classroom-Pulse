@@ -22,32 +22,32 @@
 }
 
 .state-connected {
-  color: #059669;
-  border-color: #a7f3d0;
-  background-color: #ecfdf5;
+  color: var(--status-completed-text);
+  border-color: var(--status-completed);
+  background-color: var(--status-completed-bg);
 }
 .state-connected .dot {
-  background-color: #10b981;
-  box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
+  background-color: var(--status-completed);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
 }
 
 .state-warning {
-  color: #b45309;
-  border-color: #fde68a;
-  background-color: #fffbeb;
+  color: var(--status-pending-text);
+  border-color: var(--status-pending);
+  background-color: var(--status-pending-bg);
 }
 .state-warning .dot {
-  background-color: #f59e0b;
+  background-color: var(--status-pending);
   animation: pulseWarning 1.4s ease-in-out infinite;
 }
 
 .state-disconnected {
-  color: #71717a;
+  color: var(--status-inactive-text);
   border-color: var(--border-default);
-  background-color: var(--bg-subtle);
+  background-color: var(--status-inactive-bg);
 }
 .state-disconnected .dot {
-  background-color: #a1a1aa;
+  background-color: var(--status-inactive);
 }
 
 @keyframes pulseWarning {

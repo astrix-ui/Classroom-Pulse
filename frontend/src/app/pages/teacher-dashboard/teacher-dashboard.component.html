@@ -1,4 +1,10 @@
 <div class="dashboard-shell">
+  <!-- Ambient Luminous Backdrop -->
+  <div class="ambient-backdrop" aria-hidden="true">
+    <div class="aurora-blob aurora-blob-1"></div>
+    <div class="aurora-blob aurora-blob-2"></div>
+  </div>
+
   <!-- Reconnection Banner -->
   <div *ngIf="connectionState === 'RECONNECTING'" class="reconnecting-banner" role="status" aria-live="polite">
     <span>Reconnecting to session... Showing last known status</span>
@@ -8,12 +14,36 @@
   <header class="dashboard-nav">
     <div class="nav-left">
       <span class="brand-text">Classroom Pulse</span>
+      <span class="teacher-tag">Teacher</span>
       <div class="divider-v"></div>
       <app-room-code-display [roomCode]="roomCode"></app-room-code-display>
     </div>
 
     <div class="nav-right">
       <app-connection-indicator [state]="connectionState"></app-connection-indicator>
+
+      <!-- Dark / Light Theme Toggle -->
+      <button 
+        type="button" 
+        class="theme-toggle-btn" 
+        (click)="themeService.toggleTheme()"
+        [attr.aria-label]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+        [title]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+        <svg *ngIf="themeService.isDark" class="theme-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg *ngIf="!themeService.isDark" class="theme-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
 
       <button 
         type="button" 
@@ -145,23 +175,6 @@
           </div>
         </div>
 
-        <!-- Answer mode status notice -->
-        <div *ngIf="classroom?.active" class="answer-mode-notice" [class.mode-written]="isAllowAnswers" [class.mode-simple]="!isAllowAnswers" role="status">
-          <svg *ngIf="isAllowAnswers" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-          <svg *ngIf="!isAllowAnswers" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span *ngIf="isAllowAnswers">
-            <strong>Written Answers Enabled:</strong> Students must type their answer (copy-paste disabled) before clicking I'm Done.
-          </span>
-          <span *ngIf="!isAllowAnswers">
-            <strong>Simple Mode (Answers Disabled):</strong> Students simply click I'm Done without typing an answer.
-          </span>
-        </div>
-
         <!-- If no question published yet -->
         <div *ngIf="!classroom?.currentQuestion" class="empty-q-state">
           <p class="empty-text">No question currently active. Enter a question below to broadcast.</p>
@@ -291,25 +304,6 @@
               {{ resettingGroups ? 'Resetting...' : 'Reset Groups' }}
             </button>
           </div>
-        </div>
-
-        <!-- Groups Mode Status Banner -->
-        <div *ngIf="classroom?.active" class="answer-mode-notice" [class.mode-written]="isGroupsEnabled" [class.mode-simple]="!isGroupsEnabled" role="status">
-          <svg *ngIf="isGroupsEnabled" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          <svg *ngIf="!isGroupsEnabled" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"></circle>
-          </svg>
-          <span *ngIf="isGroupsEnabled">
-            <strong>Group Formation Enabled:</strong> Students are prompted to form groups of {{ maxGroupSize }}. Members are selected from the room.
-          </span>
-          <span *ngIf="!isGroupsEnabled">
-            <strong>Groups Disabled:</strong> Students work individually. Turn on to allow forming groups of {{ maxGroupSize }}.
-          </span>
         </div>
 
         <!-- Groups Overview Stats -->

@@ -1,40 +1,87 @@
-<div class="create-container">
-  <div class="create-card card">
-    <div class="card-header">
-      <a routerLink="/" class="back-link">&larr; Back to Home</a>
-      <h1 class="card-title">Create a Classroom</h1>
-      <p class="card-subtitle">Generate a new live session for your students to join.</p>
-    </div>
+<div class="create-immersive-container">
+  <!-- Ambient Luminous Backdrop -->
+  <div class="ambient-backdrop" aria-hidden="true">
+    <div class="aurora-blob aurora-blob-1"></div>
+    <div class="aurora-blob aurora-blob-2"></div>
+  </div>
 
-    <div *ngIf="errorMessage" class="error-banner" role="alert">
-      {{ errorMessage }}
-    </div>
+  <!-- Top Navigation with Theme Toggle -->
+  <nav class="create-nav">
+    <a routerLink="/" class="back-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Back to Home</span>
+    </a>
 
-    <div class="card-content">
+    <button 
+      type="button" 
+      class="theme-toggle-btn" 
+      (click)="themeService.toggleTheme()"
+      [attr.aria-label]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+      [title]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+      <svg *ngIf="themeService.isDark" class="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+      <svg *ngIf="!themeService.isDark" class="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Create Session Main Stage -->
+  <main class="create-main">
+    <div class="glass-create-card">
+      <div class="card-header">
+        <div class="badge-row">
+          <span class="teacher-pill">Teacher Studio</span>
+        </div>
+        <h1 class="card-title">Create Classroom</h1>
+        <p class="card-subtitle">Generate a live real-time classroom session for your students to join.</p>
+      </div>
+
+      <div *ngIf="errorMessage" class="error-banner" role="alert">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage }}</span>
+      </div>
+
       <div class="features-list">
         <div class="feature-item">
           <span class="feature-bullet">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </span>
-          <span>Instant 6-character room code generated</span>
+          <span class="feature-text">Instant 6-character room code generated</span>
         </div>
         <div class="feature-item">
           <span class="feature-bullet">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </span>
-          <span>Live question broadcasting to all devices</span>
+          <span class="feature-text">Live question broadcasting with written answer modes</span>
         </div>
         <div class="feature-item">
           <span class="feature-bullet">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </span>
-          <span>Real-time completion status lights</span>
+          <span class="feature-text">Real-time student progress & team group management</span>
         </div>
       </div>
 
@@ -43,11 +90,15 @@
         <button 
           *ngIf="!loading" 
           type="button" 
-          class="btn btn-primary create-btn" 
+          class="btn btn-primary create-submit-btn" 
           (click)="onCreateRoom()">
-          Start New Classroom Session
+          <span>Start New Classroom Session</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
         </button>
       </div>
     </div>
-  </div>
+  </main>
 </div>

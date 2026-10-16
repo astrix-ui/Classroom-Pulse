@@ -1,0 +1,195 @@
+<div class="about-immersive-container">
+  <!-- Ambient Luminous Backdrop -->
+  <div class="ambient-backdrop" aria-hidden="true">
+    <div class="aurora-blob aurora-blob-1"></div>
+    <div class="aurora-blob aurora-blob-2"></div>
+  </div>
+
+  <!-- Top Navbar -->
+  <header class="about-nav">
+    <a routerLink="/" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Home</span>
+    </a>
+
+    <div class="nav-right">
+      <button 
+        type="button" 
+        class="theme-toggle-btn" 
+        (click)="themeService.toggleTheme()"
+        [attr.aria-label]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+        [title]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+        <svg *ngIf="themeService.isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg *ngIf="!themeService.isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Stage -->
+  <main class="about-main">
+    <div class="about-content-card">
+      <!-- Hero Section -->
+      <section class="about-hero">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>About Classroom Pulse</span>
+        </div>
+        <h1 class="hero-title">Real-Time Classroom Intelligence &amp; Collaboration</h1>
+        <p class="hero-lead">
+          Classroom Pulse is an interactive, synchronized classroom system built for instant question broadcasting, 
+          live student progress tracking, and dynamic group collaboration without the overhead of heavy learning management software.
+        </p>
+      </section>
+
+      <!-- Architecture & Capabilities Grid -->
+      <section class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+            </svg>
+          </div>
+          <h2 class="feature-title">Live Dynamic Pacing</h2>
+          <p class="feature-desc">
+            Full-duplex WebSockets (STOMP over SockJS) broadcast questions to all student displays within milliseconds. 
+            Teachers maintain total control over problem sequence, instant inline question edits, and question retirement.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h2 class="feature-title">Real-Time Completion Lights</h2>
+          <p class="feature-desc">
+            Instant live feedback matrix. Watch student status indicators shift dynamically between Pending and Done 
+            with animated pulses and percentage completion progress bars.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <h2 class="feature-title">Collaborative Groups</h2>
+          <p class="feature-desc">
+            Teachers configure target group sizes (2 to 10). Students dynamically form teams and select available peers. 
+            When any teammate completes the solution, answers seamlessly synchronize across the entire group.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <h2 class="feature-title">Flexible Answering Modes</h2>
+          <p class="feature-desc">
+            Support both speed-check simple mode ("I'm Done" one-click confirmation) and rigorous written response mode 
+            with automated clipboard protection to promote original student synthesis.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <h2 class="feature-title">Answer Inspection Modal</h2>
+          <p class="feature-desc">
+            Teachers can click any student row from the live roster to inspect their comprehensive session answer history, 
+            timestamps, and group affiliations in a clean, minimal inspection overlay.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <h2 class="feature-title">Zero Overhead &amp; Ephemeral</h2>
+          <p class="feature-desc">
+            No permanent user accounts, sign-ups, or invasive tracking. Unique room codes connect educators and students instantly. 
+            All session state is clean, reactive, and ephemeral.
+          </p>
+        </div>
+      </section>
+
+      <!-- Technical Architecture Info -->
+      <section class="tech-section">
+        <h2 class="tech-title">Technical Architecture</h2>
+        <div class="tech-tags">
+          <span class="tech-tag">Angular 15</span>
+          <span class="tech-tag">TypeScript</span>
+          <span class="tech-tag">Spring Boot 3</span>
+          <span class="tech-tag">WebSockets / STOMP</span>
+          <span class="tech-tag">SockJS</span>
+          <span class="tech-tag">RxJS Reactive Streams</span>
+          <span class="tech-tag">Neutral Gray Design Tokens</span>
+          <span class="tech-tag">Glassmorphic UI</span>
+        </div>
+      </section>
+
+      <!-- Creator & Attribution Card -->
+      <section class="creator-card">
+        <div class="creator-info">
+          <div class="creator-avatar">AS</div>
+          <div>
+            <h3 class="creator-name">Ayush Sharma</h3>
+            <p class="creator-role">Lead Architect &amp; Developer &bull; Classroom Pulse</p>
+          </div>
+        </div>
+        <p class="creator-note">
+          Crafted with a commitment to minimal, responsive, high-performance web architecture.
+        </p>
+        <div class="action-buttons">
+          <button type="button" class="btn btn-primary" (click)="goToTeacher()">
+            Create Classroom
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="goToStudent()">
+            Join as Student
+          </button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+

@@ -10,6 +10,8 @@ import { ClassroomSession, StudentGroupDto } from '../../core/models/classroom.m
 import { ConnectionState, WebSocketEvent } from '../../core/models/websocket-event.model';
 import { StudentDto } from '../../core/models/student-status.model';
 import { QuestionDto } from '../../core/models/question.model';
+import { ThemeService } from '../../core/services/theme.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-teacher-dashboard',
@@ -69,6 +71,8 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     private apiService: ClassroomApiService,
     private socketService: ClassroomSocketService,
     private sessionStorageService: SessionStorageService,
+    public themeService: ThemeService,
+    private toastService: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -213,11 +217,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: () => {
         this.submittingQuestion = false;
         this.questionForm.reset({ questionText: '' });
+        this.toastService.success('Question published to students');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.submittingQuestion = false;
         this.errorMessage = err?.error?.message || 'Failed to publish question.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -234,11 +240,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.resettingStatus = false;
+        this.toastService.info('All student statuses reset to Pending');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.resettingStatus = false;
         this.errorMessage = err?.error?.message || 'Failed to reset statuses.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -272,11 +280,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         }
         this.isEditingQuestion = false;
         this.savingEditQuestion = false;
+        this.toastService.info('Question updated');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.savingEditQuestion = false;
         this.errorMessage = err?.error?.message || 'Failed to update question.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -304,11 +314,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         this.classroom = updatedClassroom;
         this.isEditingQuestion = false;
         this.deletingQuestion = false;
+        this.toastService.info('Question deleted');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.deletingQuestion = false;
         this.errorMessage = err?.error?.message || 'Failed to delete question.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -339,11 +351,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         } else {
           this.classroom = closedClassroom;
         }
+        this.toastService.warning('Classroom session ended');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.closingClassroom = false;
         this.errorMessage = err?.error?.message || 'Failed to close classroom.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -399,11 +413,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.togglingAllowAnswers = false;
+        this.toastService.info(this.isAllowAnswers ? 'Written answers enabled' : 'Simple mode enabled (answers disabled)');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.togglingAllowAnswers = false;
         this.errorMessage = err?.error?.message || 'Failed to update answer permissions.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -421,11 +437,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.configuringGroups = false;
+        this.toastService.info(this.isGroupsEnabled ? `Group formation enabled (size ${this.maxGroupSize})` : 'Groups disabled');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.configuringGroups = false;
         this.errorMessage = err?.error?.message || 'Failed to update group settings.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -444,11 +462,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         next: (updated) => {
           this.classroom = updated;
           this.configuringGroups = false;
+          this.toastService.info(`Group capacity updated to ${newSize}`);
           this.cdr.markForCheck();
         },
         error: (err) => {
           this.configuringGroups = false;
           this.errorMessage = err?.error?.message || 'Failed to update group size.';
+          this.toastService.error(this.errorMessage);
           this.cdr.markForCheck();
         }
       });
@@ -466,11 +486,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.resettingGroups = false;
+        this.toastService.info('Groups have been reset');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.resettingGroups = false;
         this.errorMessage = err?.error?.message || 'Failed to reset groups.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -487,11 +509,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.managingGroupMember = false;
+        this.toastService.info('Student removed from group');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.managingGroupMember = false;
         this.errorMessage = err?.error?.message || 'Failed to remove student from group.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -508,11 +532,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.managingGroupMember = false;
+        this.toastService.success('Student assigned to group');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.managingGroupMember = false;
         this.errorMessage = err?.error?.message || 'Failed to assign student to group.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });

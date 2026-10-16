@@ -14,17 +14,22 @@ import { StudentJoinComponent } from './pages/student-join/student-join.componen
 import { StudentRoomComponent } from './pages/student-room/student-room.component';
 import { NotFoundComponent } from './pages/not-found/not-found.component';
 
+import { AboutComponent } from './pages/about/about.component';
+
 // Shared Components
 import { ConnectionIndicatorComponent } from './shared/components/connection-indicator/connection-indicator.component';
 import { StatusLightComponent } from './shared/components/status-light/status-light.component';
 import { RoomCodeDisplayComponent } from './shared/components/room-code-display/room-code-display.component';
 import { LoadingSpinnerComponent } from './shared/components/loading-spinner/loading-spinner.component';
 import { ConfirmationDialogComponent } from './shared/components/confirmation-dialog/confirmation-dialog.component';
+import { FooterComponent } from './shared/components/footer/footer.component';
+import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     LandingComponent,
+    AboutComponent,
     TeacherCreateComponent,
     TeacherDashboardComponent,
     StudentJoinComponent,
@@ -34,7 +39,9 @@ import { ConfirmationDialogComponent } from './shared/components/confirmation-di
     StatusLightComponent,
     RoomCodeDisplayComponent,
     LoadingSpinnerComponent,
-    ConfirmationDialogComponent
+    ConfirmationDialogComponent,
+    FooterComponent,
+    ToastContainerComponent
   ],
   imports: [
     BrowserModule,

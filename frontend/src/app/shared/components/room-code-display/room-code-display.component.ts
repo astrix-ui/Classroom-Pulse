@@ -1,4 +1,5 @@
 import { Component, Input, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-room-code-display',
@@ -13,7 +14,10 @@ export class RoomCodeDisplayComponent {
   copied = false;
   private timeoutId: any;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private toastService: ToastService
+  ) {}
 
   copyCode(): void {
     if (!this.roomCode) return;
@@ -47,6 +51,7 @@ export class RoomCodeDisplayComponent {
 
   private triggerCopied(): void {
     this.copied = true;
+    this.toastService.info(`Room code ${this.roomCode} copied to clipboard!`);
     this.cdr.markForCheck();
     if (this.timeoutId) {
       clearTimeout(this.timeoutId);

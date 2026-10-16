@@ -9,6 +9,7 @@ import { ClassroomSession, StudentGroupDto } from '../../core/models/classroom.m
 import { ConnectionState, WebSocketEvent } from '../../core/models/websocket-event.model';
 import { CompletionStatus, StudentDto } from '../../core/models/student-status.model';
 import { ThemeService } from '../../core/services/theme.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-student-room',
@@ -41,6 +42,10 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
   newGroupName = '';
   private groupErrorTimeout: any = null;
 
+  // Group Formation Prompt Modal
+  showGroupPromptModal = false;
+  private lastKnownGroupsEnabled: boolean | null = null;
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -50,6 +55,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
     private socketService: ClassroomSocketService,
     private sessionStorageService: SessionStorageService,
     public themeService: ThemeService,
+    private toastService: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -178,6 +184,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
 
   private showPasteWarning(): void {
     this.pasteWarning = 'Copy-paste is disabled. Please type your answer manually.';
+    this.toastService.warning('Copy-paste is disabled. Please type your answer manually.');
     if (this.pasteWarningTimeout) {
       clearTimeout(this.pasteWarningTimeout);
     }
@@ -192,6 +199,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
     this.apiService.getClassroom(this.roomCode).subscribe({
       next: (data) => {
         this.classroom = data;
+        this.lastKnownGroupsEnabled = !!data?.groupsEnabled;
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -220,7 +228,17 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
       .subscribe((event: WebSocketEvent<ClassroomSession>) => {
         if (event && event.payload) {
           const prevQuestionId = this.classroom?.currentQuestion?.questionId;
+          const prevGroupsEnabled = this.lastKnownGroupsEnabled ?? !!this.classroom?.groupsEnabled;
+          const nextGroupsEnabled = !!event.payload.groupsEnabled;
+
           this.classroom = event.payload;
+
+          // If teacher toggled groups to ON, trigger popup modal and toast!
+          if (!prevGroupsEnabled && nextGroupsEnabled) {
+            this.showGroupPromptModal = true;
+            this.toastService.info(`Group collaboration is now active! Form a group of up to ${event.payload.maxGroupSize || 2}.`);
+          }
+          this.lastKnownGroupsEnabled = nextGroupsEnabled;
 
           // If a new question was published, reset answer text and in-flight tracking
           if (this.classroom?.currentQuestion?.questionId !== prevQuestionId) {
@@ -265,12 +283,14 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
         }
         this.submittingCompletion = false;
         this.inFlightQuestionId = null;
+        this.toastService.success('Answer submitted successfully!');
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.submittingCompletion = false;
         this.inFlightQuestionId = null;
         this.errorMessage = err?.error?.message || 'Failed to update status. Please try again.';
+        this.toastService.error(this.errorMessage);
         this.cdr.markForCheck();
       }
     });
@@ -278,6 +298,20 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
 
   showLeaveConfirm = false;
   leavingRoom = false;
+
+  dismissGroupPrompt(): void {
+    this.showGroupPromptModal = false;
+    this.cdr.markForCheck();
+  }
+
+  scrollToGroups(): void {
+    this.showGroupPromptModal = false;
+    const el = document.getElementById('teamDockSection');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+    this.cdr.markForCheck();
+  }
 
   onLeaveRoom(): void {
     this.showLeaveConfirm = true;
@@ -313,13 +347,15 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
 
     this.creatingGroup = true;
     this.groupErrorMessage = '';
+    const groupName = this.newGroupName.trim() || `${this.studentName}'s Team`;
     this.cdr.markForCheck();
 
-    this.apiService.createGroup(this.roomCode, this.studentId, this.newGroupName.trim()).subscribe({
+    this.apiService.createGroup(this.roomCode, this.studentId, groupName).subscribe({
       next: (updated) => {
         this.classroom = updated;
         this.newGroupName = '';
         this.creatingGroup = false;
+        this.toastService.success(`Group "${groupName}" created!`);
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -340,6 +376,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.addingMemberId = null;
+        this.toastService.success(`Added ${targetStudent.studentName} to group!`);
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -361,6 +398,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.classroom = updated;
         this.leavingGroup = false;
+        this.toastService.info('You left the group');
         this.cdr.markForCheck();
       },
       error: (err) => {

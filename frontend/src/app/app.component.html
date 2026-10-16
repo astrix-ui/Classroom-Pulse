@@ -1,4 +1,12 @@
-<router-outlet></router-outlet>
+<div class="app-root-shell">
+  <div class="app-content-area">
+    <router-outlet></router-outlet>
+  </div>
+  <app-footer></app-footer>
+</div>
+
+<!-- Global Toast Container -->
+<app-toast-container></app-toast-container>
 
 <!-- Cold Start Server Warm-up Overlay (Render Free Tier) -->
 <div *ngIf="showOverlay" class="server-warmup-overlay" [class.fade-out]="isFadingOut" role="status" aria-live="polite">

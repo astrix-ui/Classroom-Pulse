@@ -1,43 +1,79 @@
-<main class="landing-container">
-  <div class="hero-card card">
-    <div class="logo-badge">
-      <span class="pulse-indicator"></span>
-      <span class="badge-text">Real-Time Classroom Coordination</span>
-    </div>
-
-    <h1 class="hero-title">Classroom Pulse</h1>
-    <p class="hero-description">
-      Instant, synchronized status tracking for live classroom problem solving. 
-      Teachers broadcast questions in real-time, and students signal completion with a single tap.
-    </p>
-
-    <div class="role-selector">
-      <div class="role-card" (click)="goToTeacher()" role="button" tabindex="0" (keydown.enter)="goToTeacher()" (keydown.space)="goToTeacher()" aria-label="Enter as Teacher">
-        <div class="role-icon teacher-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
-            <path d="M6 6h10"></path>
-            <path d="M6 10h10"></path>
-          </svg>
-        </div>
-        <h2 class="role-title">I am a Teacher</h2>
-        <p class="role-text">Create a room, publish questions, and view live student completion lights without refreshing.</p>
-        <button type="button" class="btn btn-primary role-btn" (click)="$event.stopPropagation(); goToTeacher()">Create Classroom</button>
-      </div>
-
-      <div class="role-card" (click)="goToStudent()" role="button" tabindex="0" (keydown.enter)="goToStudent()" (keydown.space)="goToStudent()" aria-label="Enter as Student">
-        <div class="role-icon student-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <polyline points="16 11 18 13 22 9"></polyline>
-          </svg>
-        </div>
-        <h2 class="role-title">I am a Student</h2>
-        <p class="role-text">Join an active room with your room code, view questions, and mark when you have solved them.</p>
-        <button type="button" class="btn btn-secondary role-btn" (click)="$event.stopPropagation(); goToStudent()">Join Classroom</button>
-      </div>
-    </div>
+<div class="landing-shell">
+  <!-- Ambient Luminous Backdrop -->
+  <div class="ambient-backdrop" aria-hidden="true">
+    <div class="aurora-blob aurora-blob-1"></div>
+    <div class="aurora-blob aurora-blob-2"></div>
   </div>
-</main>
 
+  <!-- Landing Nav -->
+  <header class="landing-nav">
+    <span class="landing-nav-brand">Classroom Pulse</span>
+    <div class="landing-nav-right">
+      <a routerLink="/about" class="nav-about-link">About</a>
+      <button 
+        type="button" 
+        class="theme-toggle-btn" 
+        (click)="themeService.toggleTheme()"
+        [attr.aria-label]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+        [title]="themeService.isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+        <svg *ngIf="themeService.isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg *ngIf="!themeService.isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="landing-container">
+    <div class="hero-card card">
+      <div class="logo-badge">
+        <span class="pulse-indicator"></span>
+        <span class="badge-text">Real-Time Classroom Coordination</span>
+      </div>
+
+      <h1 class="hero-title">Classroom Pulse</h1>
+      <p class="hero-description">
+        Instant, synchronized status tracking for live classroom problem solving. 
+        Teachers broadcast questions in real-time, and students signal completion with a single tap.
+      </p>
+
+      <div class="role-selector">
+        <div class="role-card" (click)="goToTeacher()" role="button" tabindex="0" (keydown.enter)="goToTeacher()" (keydown.space)="goToTeacher()" aria-label="Enter as Teacher">
+          <div class="role-icon teacher-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+              <path d="M6 6h10"></path>
+              <path d="M6 10h10"></path>
+            </svg>
+          </div>
+          <h2 class="role-title">I am a Teacher</h2>
+          <p class="role-text">Create a room, publish questions, and view live student completion lights without refreshing.</p>
+          <button type="button" class="btn btn-primary role-btn" (click)="$event.stopPropagation(); goToTeacher()">Create Classroom</button>
+        </div>
+
+        <div class="role-card" (click)="goToStudent()" role="button" tabindex="0" (keydown.enter)="goToStudent()" (keydown.space)="goToStudent()" aria-label="Enter as Student">
+          <div class="role-icon student-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <polyline points="16 11 18 13 22 9"></polyline>
+            </svg>
+          </div>
+          <h2 class="role-title">I am a Student</h2>
+          <p class="role-text">Join an active room with your room code, view questions, and mark when you have solved them.</p>
+          <button type="button" class="btn btn-secondary role-btn" (click)="$event.stopPropagation(); goToStudent()">Join Classroom</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

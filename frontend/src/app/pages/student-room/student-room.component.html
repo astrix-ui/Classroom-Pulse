@@ -286,7 +286,7 @@
       </div>
 
       <!-- COMPANION ARENA: Team Workspace (Shown when teacher enables groups) -->
-      <aside *ngIf="groupsEnabled" class="companion-arena" aria-labelledby="group-section-title">
+      <aside *ngIf="groupsEnabled" id="teamDockSection" class="companion-arena" aria-labelledby="group-section-title">
         <section class="glass-card team-dock-card">
           <!-- Dock Header -->
           <div class="team-dock-header">
@@ -467,3 +467,30 @@
   (confirm)="confirmLeaveRoom()"
   (cancel)="cancelLeaveRoom()">
 </app-confirmation-dialog>
+
+<!-- Group Formation Prompt Modal -->
+<div *ngIf="showGroupPromptModal" class="modal-backdrop" (click)="dismissGroupPrompt()" role="dialog" aria-modal="true" aria-labelledby="group-prompt-title">
+  <div class="modal-card prompt-modal-card" (click)="$event.stopPropagation()">
+    <div class="prompt-icon-box">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+    </div>
+    <h3 id="group-prompt-title" class="prompt-title">Group Collaboration Active</h3>
+    <p class="prompt-desc">
+      Your teacher has enabled collaborative groups (teams of up to {{ maxGroupSize }}). 
+      Form your team or wait for a classmate to invite you!
+    </p>
+    <div class="prompt-actions">
+      <button type="button" class="btn btn-secondary btn-sm" (click)="dismissGroupPrompt()">
+        Dismiss
+      </button>
+      <button type="button" class="btn btn-primary btn-sm" (click)="scrollToGroups()">
+        Form Group
+      </button>
+    </div>
+  </div>
+</div>

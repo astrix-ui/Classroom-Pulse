@@ -1263,22 +1263,173 @@
   to { transform: rotate(360deg); }
 }
 
+/* --- Group Formation Prompt Modal --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: promptFadeIn 0.18s ease-out;
+}
+
+@keyframes promptFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.prompt-modal-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: promptSlideUp 0.22s var(--ease-spring);
+}
+
+@keyframes promptSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.prompt-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.prompt-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.prompt-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.prompt-actions .btn {
+  flex: 1;
+}
+
 /* --- Responsive Adjustments --- */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .student-navbar {
-    padding: 12px 14px;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .student-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
   }
 
   .student-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .role-pill {
+    display: none;
+  }
+
+  .nav-right {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-navbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .nav-left {
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .student-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 0.9375rem;
+  }
+
+  .student-name {
+    font-size: 0.875rem;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .room-pill {
+    padding: 1px 6px;
+  }
+
+  .room-pill-label {
+    display: none;
+  }
+
+  .room-pill-code {
+    font-size: 0.75rem;
+  }
+
+  .nav-right {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .theme-toggle-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .nav-leave-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
   }
 
   .nav-leave-btn .leave-text {
     display: none;
-  }
-
-  .nav-leave-btn {
-    padding: 8px;
   }
 
   .huge-complete-btn {
