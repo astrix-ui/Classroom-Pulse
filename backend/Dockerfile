@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy maven wrapper and pom.xml
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN ./mvnw dependency:go-offline -B
+RUN chmod +x ./mvnw && ./mvnw dependency:go-offline -B
 
 # Copy source code and build
 COPY src ./src
@@ -22,9 +22,9 @@ USER spring:spring
 COPY --from=build /app/target/classroom-tracker-1.0.0.jar app.jar
 
 ENV PORT=8080
-ENV ALLOWED_ORIGINS=http://localhost:4200
+ENV ALLOWED_ORIGINS=http://localhost:4200,https://*.vercel.app
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-Dserver.port=${PORT}", "-Dcors.allowed-origins=${ALLOWED_ORIGINS}", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar app.jar"]
 
