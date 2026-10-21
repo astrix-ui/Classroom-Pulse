@@ -229,6 +229,19 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  onCopyJoinLink(): void {
+    const url = `${window.location.origin}/student/join?roomCode=${this.roomCode}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        this.toastService.success('Student join link copied to clipboard');
+      }).catch(() => {
+        this.toastService.info(`Room code: ${this.roomCode}`);
+      });
+    } else {
+      this.toastService.info(`Room code: ${this.roomCode}`);
+    }
+  }
+
   onResetStatus(): void {
     if (this.resettingStatus || !this.classroom?.active) return;
 

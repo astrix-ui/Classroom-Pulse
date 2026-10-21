@@ -1,22 +1,21 @@
 /* Modern Responsive Design System with Fluid Themes and Immersive Micro-Animations */
 :root {
-  /* Light Theme (Default) */
+  /* High-Contrast Surfaces & Borders */
   --bg-page: #f8fafc;
-  --bg-page-gradient: radial-gradient(100% 70% at 50% -10%, #e2e8f0 0%, #f8fafc 100%);
   --bg-surface: #ffffff;
-  --bg-surface-glass: rgba(255, 255, 255, 0.85);
+  --bg-surface-glass: #ffffff;
   --bg-surface-elevated: #ffffff;
   --bg-subtle: #f1f5f9;
   --bg-muted: #e2e8f0;
 
   --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-muted: #64748b;
   --text-inverted: #f8fafc;
 
-  --border-subtle: rgba(15, 23, 42, 0.06);
-  --border-default: rgba(15, 23, 42, 0.1);
-  --border-strong: rgba(15, 23, 42, 0.2);
+  --border-subtle: #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-strong: #94a3b8;
   --border-focus: #0f172a;
 
   /* Monotone Accent & Status */
@@ -25,28 +24,24 @@
   --accent-text: #ffffff;
   
   --status-pending: #d97706;
-  --status-pending-bg: #fffbeb;
-  --status-pending-text: #b45309;
+  --status-pending-bg: #fef3c7;
+  --status-pending-text: #92400e;
 
   --status-completed: #059669;
-  --status-completed-bg: #ecfdf5;
-  --status-completed-text: #047857;
+  --status-completed-bg: #d1fae5;
+  --status-completed-text: #065f46;
 
-  --status-inactive: #a1a1aa;
-  --status-inactive-bg: #f4f4f5;
-  --status-inactive-text: #71717a;
+  --status-inactive: #64748b;
+  --status-inactive-bg: #f1f5f9;
+  --status-inactive-text: #475569;
 
-  --danger: #e11d48;
-  --danger-hover: #be123c;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
 
-  --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
-  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
-  --shadow-hover: 0 12px 32px -4px rgba(15, 23, 42, 0.09), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
-  --shadow-float: 0 20px 40px -6px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
-
-  --glow-accent: rgba(15, 23, 42, 0.06);
-  --ambient-aura-1: rgba(0, 0, 0, 0.03);
-  --ambient-aura-2: rgba(0, 0, 0, 0.02);
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+  --shadow-float: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
 
   --radius-xs: 6px;
   --radius-sm: 8px;
@@ -62,27 +57,26 @@
 /* Dark Theme Variables (Neutral VS Code-inspired Gray, Zero Blue) */
 [data-theme="dark"],
 .dark-theme {
-  --bg-page: #232326;
-  --bg-page-gradient: radial-gradient(100% 70% at 50% -10%, #2c2c30 0%, #232326 100%);
-  --bg-surface: #2b2b2f;
-  --bg-surface-glass: rgba(43, 43, 47, 0.88);
-  --bg-surface-elevated: #333338;
-  --bg-subtle: #333338;
-  --bg-muted: #3f3f45;
+  --bg-page: #1e1e20;
+  --bg-surface: #26262a;
+  --bg-surface-glass: #26262a;
+  --bg-surface-elevated: #2f2f34;
+  --bg-subtle: #303035;
+  --bg-muted: #3a3a40;
 
   --text-primary: #f4f4f5;
   --text-secondary: #d4d4d8;
   --text-muted: #a1a1aa;
-  --text-inverted: #232326;
+  --text-inverted: #1e1e20;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-default: rgba(255, 255, 255, 0.14);
-  --border-strong: rgba(255, 255, 255, 0.24);
-  --border-focus: #e4e4e7;
+  --border-subtle: #333338;
+  --border-default: #424248;
+  --border-strong: #52525a;
+  --border-focus: #f4f4f5;
 
   --accent: #f4f4f5;
   --accent-hover: #ffffff;
-  --accent-text: #232326;
+  --accent-text: #1e1e20;
 
   --status-pending: #fbbf24;
   --status-pending-bg: rgba(251, 191, 36, 0.16);
@@ -99,14 +93,10 @@
   --danger: #f87171;
   --danger-hover: #ef4444;
 
-  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
-  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-hover: 0 10px 28px -4px rgba(0, 0, 0, 0.55), 0 4px 12px -2px rgba(0, 0, 0, 0.35);
-  --shadow-float: 0 18px 40px -6px rgba(0, 0, 0, 0.65), 0 8px 18px -4px rgba(0, 0, 0, 0.4);
-
-  --glow-accent: rgba(255, 255, 255, 0.12);
-  --ambient-aura-1: rgba(255, 255, 255, 0.04);
-  --ambient-aura-2: rgba(255, 255, 255, 0.03);
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
 }
 
 *, *::before, *::after {

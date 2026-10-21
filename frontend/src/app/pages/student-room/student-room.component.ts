@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of, timer } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { ClassroomApiService } from '../../core/services/classroom-api.service';
 import { ClassroomSocketService } from '../../core/services/classroom-socket.service';
 import { SessionStorageService } from '../../core/services/session-storage.service';
@@ -75,6 +75,7 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
 
     this.loadClassroom();
     this.initWebSocket();
+    this.initKeepAlive();
   }
 
   ngOnDestroy(): void {
@@ -433,6 +434,21 @@ export class StudentRoomComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     }, 4500);
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Periodically pings the backend every 2 minutes while connected as a student
+   * to provide redundant keep-alive signals for cloud hosts (e.g. Render).
+   */
+  private initKeepAlive(): void {
+    timer(120000, 120000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (!this.classroom?.active) return;
+        this.apiService.health()
+          .pipe(catchError(() => of({ status: 'DOWN' })))
+          .subscribe();
+      });
   }
 }
 
