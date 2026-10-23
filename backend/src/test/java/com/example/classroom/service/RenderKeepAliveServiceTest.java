@@ -18,6 +18,8 @@ import java.time.Duration;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -121,6 +123,37 @@ class RenderKeepAliveServiceTest {
 
         assertDoesNotThrow(() -> keepAliveService.performKeepAlivePing());
         verify(restTemplate, times(1)).getForEntity("https://my-app.onrender.com/api/health", String.class);
+    }
+
+    @Test
+    @DisplayName("Does not send keep-alive ping and marks session inactive if session has been idle for >= 6 hours")
+    void testNoPingWhenSessionIdleForOverSixHours() {
+        keepAliveService.setPublicServiceUrl("https://my-app.onrender.com");
+        ClassroomSession session = new ClassroomSession("TEST06", "token-6", Instant.now().minus(Duration.ofHours(7)));
+        session.setLastActivityAt(Instant.now().minus(Duration.ofHours(7)));
+        repository.save(session);
+
+        keepAliveService.performKeepAlivePing();
+
+        verifyNoInteractions(restTemplate);
+        assertFalse(session.isActive());
+    }
+
+    @Test
+    @DisplayName("Sends keep-alive ping when session was active within 6 hours (e.g. 15-minute break)")
+    void testPingSentWhenSessionActiveWithinSixHours() {
+        keepAliveService.setPublicServiceUrl("https://my-app.onrender.com");
+        ClassroomSession session = new ClassroomSession("TEST07", "token-7", Instant.now().minus(Duration.ofMinutes(15)));
+        session.setLastActivityAt(Instant.now().minus(Duration.ofMinutes(15)));
+        repository.save(session);
+
+        when(restTemplate.getForEntity(eq("https://my-app.onrender.com/api/health"), eq(String.class)))
+                .thenReturn(new ResponseEntity<>("{\"status\":\"UP\"}", HttpStatus.OK));
+
+        keepAliveService.performKeepAlivePing();
+
+        verify(restTemplate, times(1)).getForEntity("https://my-app.onrender.com/api/health", String.class);
+        assertTrue(session.isActive());
     }
 }
 

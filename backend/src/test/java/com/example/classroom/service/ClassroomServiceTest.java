@@ -2,6 +2,7 @@ package com.example.classroom.service;
 
 import com.example.classroom.dto.*;
 import com.example.classroom.exception.*;
+import com.example.classroom.model.ClassroomSession;
 import com.example.classroom.model.CompletionStatus;
 import com.example.classroom.repository.ClassroomMemoryRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -44,6 +47,7 @@ class ClassroomServiceTest {
         assertNotNull(response);
         assertNotNull(response.getRoomCode());
         assertEquals(6, response.getRoomCode().length());
+        assertTrue(response.getRoomCode().matches("^[1-9][0-9]{5}$"), "Room code must be a 6-digit number");
         assertNotNull(response.getTeacherToken());
         assertTrue(repository.existsById(response.getRoomCode()));
     }
@@ -607,6 +611,36 @@ class ClassroomServiceTest {
         // Name exceeding limit check
         assertThrows(IllegalArgumentException.class, () ->
                 service.renameGroup(room.getRoomCode(), room.getTeacherToken(), groupId, "A".repeat(51)));
+    }
+
+    @Test
+    @DisplayName("Session auto-expires after exceeding max inactivity hours (6 hours)")
+    void testSessionAutoExpiresAfterInactivity() {
+        CreateClassroomResponse room = service.createClassroom();
+        ClassroomSession session = repository.findById(room.getRoomCode()).orElseThrow();
+        assertTrue(session.isActive());
+
+        // Simulate 7 hours of inactivity
+        session.setLastActivityAt(Instant.now().minus(Duration.ofHours(7)));
+
+        // Any attempt to publish a question or access state on this session detects expiration
+        assertThrows(InvalidClassroomStateException.class, () ->
+                service.publishQuestion(room.getRoomCode(), room.getTeacherToken(), "Question after idle"));
+
+        assertFalse(session.isActive());
+    }
+
+    @Test
+    @DisplayName("User interaction updates lastActivityAt timestamp")
+    void testUserInteractionUpdatesLastActivity() {
+        CreateClassroomResponse room = service.createClassroom();
+        ClassroomSession session = repository.findById(room.getRoomCode()).orElseThrow();
+        Instant initialActivity = Instant.now().minus(Duration.ofMinutes(30));
+        session.setLastActivityAt(initialActivity);
+
+        service.joinStudent(room.getRoomCode(), "StudentA");
+
+        assertTrue(session.getLastActivityAt().isAfter(initialActivity));
     }
 }
 

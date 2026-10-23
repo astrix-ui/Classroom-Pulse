@@ -40,7 +40,7 @@
           <span class="student-pill">Student Portal</span>
         </div>
         <h1 class="card-title">Join Classroom</h1>
-        <p class="card-subtitle">Enter the 6-character room code provided by your teacher to connect.</p>
+        <p class="card-subtitle">Enter the 6-digit room code provided by your teacher to connect.</p>
       </div>
 
       <div *ngIf="errorMessage" class="error-banner" role="alert">
@@ -59,18 +59,20 @@
             <input 
               id="roomCodeInput"
               type="text" 
+              inputmode="numeric"
+              pattern="[0-9]*"
               formControlName="roomCode" 
               class="form-input text-code"
-              placeholder="e.g. AB7KQ2" 
+              placeholder="e.g. 583920" 
               maxlength="6"
               autocomplete="off"
-              autocapitalize="characters"
-              (input)="joinForm.patchValue({roomCode: roomCodeControl.value?.toUpperCase()})">
+              autocapitalize="off"
+              (input)="joinForm.patchValue({roomCode: roomCodeControl.value?.trim()})">
           </div>
           <div class="field-error" *ngIf="roomCodeControl.touched && roomCodeControl.errors">
             <span *ngIf="roomCodeControl.errors['required']">Room code is required.</span>
             <span *ngIf="roomCodeControl.errors['minlength'] || roomCodeControl.errors['maxlength']">
-              Room code must be exactly 6 characters.
+              Room code must be exactly 6 digits.
             </span>
           </div>
         </div>

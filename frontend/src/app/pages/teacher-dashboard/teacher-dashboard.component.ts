@@ -382,10 +382,80 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
-  filterStatus: 'ALL' | 'COMPLETED' | 'PENDING' = 'ALL';
+  filterStatus: 'ALL' | 'COMPLETED' | 'PENDING' | 'ASSIGNED' | 'UNASSIGNED' = 'ALL';
   filterGroup: string = 'ALL';
   searchQuery = '';
   managingGroupMember = false;
+
+  // Group Filter & Search State
+  groupFilterStatus: 'ALL' | 'DONE' | 'PENDING' | 'FULL' | 'OPEN' = 'ALL';
+  groupSearchQuery = '';
+
+  setGroupFilterStatus(status: 'ALL' | 'DONE' | 'PENDING' | 'FULL' | 'OPEN'): void {
+    this.groupFilterStatus = status;
+    this.cdr.markForCheck();
+  }
+
+  isGroupCompleted(group: StudentGroupDto): boolean {
+    if (!this.hasActiveQuestion || !group.members || group.members.length === 0) {
+      return false;
+    }
+    const currentQId = this.classroom?.currentQuestion?.questionId;
+    return group.members.some(m => {
+      const student = this.students.find(s => s.studentId === m.studentId);
+      if (!student) return false;
+      if (student.status === 'COMPLETED') return true;
+      if (currentQId && student.answeredQuestions && student.answeredQuestions[currentQId]) return true;
+      return false;
+    });
+  }
+
+  isGroupPending(group: StudentGroupDto): boolean {
+    if (!this.hasActiveQuestion) return false;
+    return !this.isGroupCompleted(group);
+  }
+
+  get completedGroupsCount(): number {
+    if (!this.hasActiveQuestion) return 0;
+    return this.groups.filter(g => this.isGroupCompleted(g)).length;
+  }
+
+  get pendingGroupsCount(): number {
+    if (!this.hasActiveQuestion) return 0;
+    return this.groups.filter(g => this.isGroupPending(g)).length;
+  }
+
+  get fullGroupsCount(): number {
+    return this.groups.filter(g => g.members.length >= this.maxGroupSize).length;
+  }
+
+  get openGroupsCount(): number {
+    return this.groups.filter(g => g.members.length < this.maxGroupSize).length;
+  }
+
+  get filteredGroups(): StudentGroupDto[] {
+    let list = this.groups;
+
+    if (this.groupFilterStatus === 'DONE' && this.hasActiveQuestion) {
+      list = list.filter(g => this.isGroupCompleted(g));
+    } else if (this.groupFilterStatus === 'PENDING' && this.hasActiveQuestion) {
+      list = list.filter(g => this.isGroupPending(g));
+    } else if (this.groupFilterStatus === 'FULL') {
+      list = list.filter(g => g.members.length >= this.maxGroupSize);
+    } else if (this.groupFilterStatus === 'OPEN') {
+      list = list.filter(g => g.members.length < this.maxGroupSize);
+    }
+
+    if (this.groupSearchQuery && this.groupSearchQuery.trim()) {
+      const q = this.groupSearchQuery.trim().toLowerCase();
+      list = list.filter(g =>
+        g.groupName.toLowerCase().includes(q) ||
+        g.members.some(m => m.studentName.toLowerCase().includes(q))
+      );
+    }
+
+    return list;
+  }
 
   get filteredStudents(): StudentDto[] {
     let list = this.students;
@@ -393,6 +463,10 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       list = list.filter(s => s.status === 'COMPLETED');
     } else if (this.filterStatus === 'PENDING') {
       list = list.filter(s => s.status === 'PENDING');
+    } else if (this.filterStatus === 'ASSIGNED') {
+      list = list.filter(s => !!s.groupId);
+    } else if (this.filterStatus === 'UNASSIGNED') {
+      list = list.filter(s => !s.groupId);
     }
     if (this.filterGroup === 'UNASSIGNED') {
       list = list.filter(s => !s.groupId);
@@ -406,7 +480,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     return list;
   }
 
-  setFilter(status: 'ALL' | 'COMPLETED' | 'PENDING'): void {
+  setFilter(status: 'ALL' | 'COMPLETED' | 'PENDING' | 'ASSIGNED' | 'UNASSIGNED'): void {
     this.filterStatus = status;
   }
 

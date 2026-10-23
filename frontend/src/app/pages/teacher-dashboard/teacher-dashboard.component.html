@@ -7,10 +7,26 @@
   <!-- Header Bar -->
   <header class="dashboard-nav">
     <div class="nav-left">
-      <span class="brand-text">Classroom Pulse</span>
-      <span class="teacher-tag">Teacher</span>
+      <div class="brand-block">
+        <span class="brand-text">Classroom Pulse</span>
+        <span class="teacher-tag">Teacher</span>
+      </div>
       <div class="divider-v"></div>
-      <app-room-code-display [roomCode]="roomCode"></app-room-code-display>
+      <div class="teacher-code-block">
+        <app-room-code-display [roomCode]="roomCode" [size]="'large'"></app-room-code-display>
+        <button 
+          *ngIf="!sessionEnded && classroom?.active"
+          type="button" 
+          class="btn btn-secondary btn-sm copy-invite-btn" 
+          (click)="onCopyJoinLink()" 
+          title="Copy direct student join link to clipboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          <span>Copy Student Link</span>
+        </button>
+      </div>
     </div>
 
     <div class="nav-right">
@@ -82,103 +98,6 @@
       Go to Home
     </button>
   </div>
-
-  <!-- Session Controls & Settings Bar (Prominent & Easy to Find) -->
-  <section class="card session-settings-bar" aria-label="Classroom Controls & Settings" *ngIf="!sessionEnded && classroom?.active">
-    <div class="settings-left-group">
-      <div class="settings-label-pill">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-        <span>Session Controls</span>
-      </div>
-
-      <!-- Written Answers Mode Setting -->
-      <div class="control-box">
-        <button 
-          type="button" 
-          class="toggle-switch-btn" 
-          [class.active]="isAllowAnswers" 
-          [disabled]="togglingAllowAnswers || !classroom?.active"
-          (click)="onToggleAllowAnswers()" 
-          role="switch" 
-          [attr.aria-checked]="isAllowAnswers" 
-          title="Toggle written answers mode (require typed text responses vs simple one-tap completion)">
-          <span class="toggle-track">
-            <span class="toggle-thumb"></span>
-          </span>
-          <span class="toggle-label">Written Answers</span>
-        </button>
-        <span class="status-indicator-tag" [class.active-tag]="isAllowAnswers">
-          {{ isAllowAnswers ? 'Require Typed Text' : 'One-Tap Done' }}
-        </span>
-      </div>
-
-      <div class="settings-divider"></div>
-
-      <!-- Student Groups Mode Setting -->
-      <div class="control-box">
-        <button 
-          type="button" 
-          class="toggle-switch-btn" 
-          [class.active]="isGroupsEnabled" 
-          [disabled]="configuringGroups || !classroom?.active"
-          (click)="onToggleGroups()" 
-          role="switch" 
-          [attr.aria-checked]="isGroupsEnabled" 
-          title="Toggle student group formation">
-          <span class="toggle-track">
-            <span class="toggle-thumb"></span>
-          </span>
-          <span class="toggle-label">Student Groups</span>
-        </button>
-
-        <!-- Group Size Picker -->
-        <div class="group-size-inline" *ngIf="isGroupsEnabled">
-          <label for="groupSizeSelect" class="size-inline-label">Team Size:</label>
-          <select 
-            id="groupSizeSelect" 
-            class="group-size-select" 
-            [ngModel]="groupSizeInput" 
-            (ngModelChange)="onGroupSizeChange($event)"
-            [disabled]="configuringGroups || !classroom?.active">
-            <option [ngValue]="2">2 students</option>
-            <option [ngValue]="3">3 students</option>
-            <option [ngValue]="4">4 students</option>
-            <option [ngValue]="5">5 students</option>
-            <option [ngValue]="6">6 students</option>
-          </select>
-        </div>
-
-        <!-- Reset Groups Button -->
-        <button 
-          *ngIf="isGroupsEnabled && groups.length > 0 && classroom?.active"
-          type="button" 
-          class="btn btn-secondary btn-xs reset-groups-btn" 
-          [disabled]="resettingGroups" 
-          (click)="onResetGroups()"
-          title="Reset all groups and release members">
-          {{ resettingGroups ? 'Resetting...' : 'Reset Groups' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Quick Action: Share Link -->
-    <div class="settings-right-group">
-      <button 
-        type="button" 
-        class="btn btn-secondary btn-sm copy-invite-btn" 
-        (click)="onCopyJoinLink()" 
-        title="Copy direct student join link to clipboard">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-        </svg>
-        <span>Copy Student Link</span>
-      </button>
-    </div>
-  </section>
 
   <!-- Main Body Layout: Main Stage on Left, Compact Student Sidebar on Right -->
   <div class="dashboard-workspace">
@@ -297,6 +216,79 @@
         </div>
 
         <form [formGroup]="questionForm" (ngSubmit)="onPublishQuestion()">
+          <!-- Mode Toggles: Written Answers & Student Groups (Placed directly above textarea) -->
+          <div class="composer-settings-bar" *ngIf="!sessionEnded && classroom?.active">
+            <!-- Written Answers Setting -->
+            <div class="composer-toggle-item">
+              <button 
+                type="button" 
+                class="toggle-switch-btn" 
+                [class.active]="isAllowAnswers" 
+                [disabled]="togglingAllowAnswers || !classroom?.active"
+                (click)="onToggleAllowAnswers()" 
+                role="switch" 
+                [attr.aria-checked]="isAllowAnswers" 
+                title="Toggle written answers mode (require typed text responses vs simple one-tap completion)">
+                <span class="toggle-track">
+                  <span class="toggle-thumb"></span>
+                </span>
+                <span class="toggle-label">Written Answers</span>
+              </button>
+              <span class="status-indicator-tag" [class.active-tag]="isAllowAnswers">
+                {{ isAllowAnswers ? 'Require Typed Text' : 'One-Tap Done' }}
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- Student Groups Setting -->
+            <div class="composer-toggle-item">
+              <button 
+                type="button" 
+                class="toggle-switch-btn" 
+                [class.active]="isGroupsEnabled" 
+                [disabled]="configuringGroups || !classroom?.active"
+                (click)="onToggleGroups()" 
+                role="switch" 
+                [attr.aria-checked]="isGroupsEnabled" 
+                title="Toggle student group formation">
+                <span class="toggle-track">
+                  <span class="toggle-thumb"></span>
+                </span>
+                <span class="toggle-label">Student Groups</span>
+              </button>
+
+              <!-- Group Size Picker -->
+              <div class="group-size-inline" *ngIf="isGroupsEnabled">
+                <label for="groupSizeSelect" class="size-inline-label">Team Size:</label>
+                <select 
+                  id="groupSizeSelect" 
+                  class="group-size-select" 
+                  [ngModel]="groupSizeInput" 
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="onGroupSizeChange($event)"
+                  [disabled]="configuringGroups || !classroom?.active">
+                  <option [ngValue]="2">2 students</option>
+                  <option [ngValue]="3">3 students</option>
+                  <option [ngValue]="4">4 students</option>
+                  <option [ngValue]="5">5 students</option>
+                  <option [ngValue]="6">6 students</option>
+                </select>
+              </div>
+
+              <!-- Reset Groups Button -->
+              <button 
+                *ngIf="isGroupsEnabled && groups.length > 0 && classroom?.active"
+                type="button" 
+                class="btn btn-secondary btn-xs reset-groups-btn" 
+                [disabled]="resettingGroups" 
+                (click)="onResetGroups()"
+                title="Reset all groups and release members">
+                {{ resettingGroups ? 'Resetting...' : 'Reset Groups' }}
+              </button>
+            </div>
+          </div>
+
           <div class="textarea-wrap">
             <textarea 
               id="questionTextarea"
@@ -336,19 +328,91 @@
 
         <!-- Groups Overview Stats -->
         <div class="groups-summary-bar">
-          <span class="summary-chip"><strong>{{ groups.length }}</strong> group(s) formed</span>
-          <span class="summary-chip"><strong>{{ students.length - unassignedStudents.length }}</strong>/{{ students.length }} grouped</span>
-          <span class="summary-chip summary-chip-pending"><strong>{{ unassignedStudents.length }}</strong> unassigned</span>
+          <span class="summary-chip">
+            <strong>{{ groups.length }}</strong> group(s) formed
+          </span>
+          <span class="summary-chip summary-chip-done" *ngIf="hasActiveQuestion">
+            <span class="chip-status-dot dot-completed"></span>
+            <strong>{{ completedGroupsCount }}</strong> done
+          </span>
+          <span class="summary-chip summary-chip-pending" *ngIf="hasActiveQuestion">
+            <span class="chip-status-dot dot-pending"></span>
+            <strong>{{ pendingGroupsCount }}</strong> pending
+          </span>
+          <span class="summary-chip">
+            <strong>{{ students.length - unassignedStudents.length }}</strong>/{{ students.length }} grouped
+          </span>
+          <span class="summary-chip summary-chip-pending" *ngIf="unassignedStudents.length > 0">
+            <strong>{{ unassignedStudents.length }}</strong> unassigned
+          </span>
         </div>
 
-        <!-- Empty Groups State -->
+        <!-- Group Filter Tabs & Search Row -->
+        <div class="groups-filter-toolbar" *ngIf="groups.length > 0">
+          <div class="filter-pills" role="tablist" aria-label="Filter groups">
+            <button 
+              type="button" 
+              class="filter-pill" 
+              [class.active]="groupFilterStatus === 'ALL'" 
+              (click)="setGroupFilterStatus('ALL')">
+              All ({{ groups.length }})
+            </button>
+            <button 
+              *ngIf="hasActiveQuestion"
+              type="button" 
+              class="filter-pill" 
+              [class.active]="groupFilterStatus === 'DONE'" 
+              (click)="setGroupFilterStatus('DONE')">
+              Done ({{ completedGroupsCount }})
+            </button>
+            <button 
+              *ngIf="hasActiveQuestion"
+              type="button" 
+              class="filter-pill" 
+              [class.active]="groupFilterStatus === 'PENDING'" 
+              (click)="setGroupFilterStatus('PENDING')">
+              Pending ({{ pendingGroupsCount }})
+            </button>
+            <button 
+              type="button" 
+              class="filter-pill" 
+              [class.active]="groupFilterStatus === 'FULL'" 
+              (click)="setGroupFilterStatus('FULL')">
+              Full ({{ fullGroupsCount }})
+            </button>
+            <button 
+              type="button" 
+              class="filter-pill" 
+              [class.active]="groupFilterStatus === 'OPEN'" 
+              (click)="setGroupFilterStatus('OPEN')">
+              Open Slots ({{ openGroupsCount }})
+            </button>
+          </div>
+
+          <!-- Group Search Bar -->
+          <div class="group-search-wrap" *ngIf="groups.length > 2">
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Search group or member..." 
+              [(ngModel)]="groupSearchQuery" 
+              [ngModelOptions]="{standalone: true}">
+          </div>
+        </div>
+
+        <!-- Empty Groups State (No groups created yet) -->
         <div *ngIf="isGroupsEnabled && groups.length === 0" class="empty-groups-state">
           <p class="empty-text">No groups have been created yet. Students will see the prompt to create groups of {{ maxGroupSize }}.</p>
         </div>
 
+        <!-- Filter Empty State (Groups exist, but none match filter) -->
+        <div *ngIf="isGroupsEnabled && groups.length > 0 && filteredGroups.length === 0" class="empty-groups-state">
+          <p class="empty-text">No groups match the selected filter or search criteria.</p>
+        </div>
+
         <!-- Formed Groups List -->
-        <div *ngIf="isGroupsEnabled && groups.length > 0" class="groups-grid">
-          <div *ngFor="let g of groups" class="group-card-item">
+        <div *ngIf="isGroupsEnabled && filteredGroups.length > 0" class="groups-grid">
+          <div *ngFor="let g of filteredGroups" class="group-card-item" [class.group-card-done]="hasActiveQuestion && isGroupCompleted(g)" [class.group-card-pending]="hasActiveQuestion && isGroupPending(g)">
             <div class="group-card-header">
               <!-- Default group title mode -->
               <div *ngIf="editingGroupId !== g.groupId" class="group-card-title-wrap">
@@ -365,6 +429,9 @@
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
+                <span *ngIf="hasActiveQuestion" class="tag-status" [ngClass]="isGroupCompleted(g) ? 'tag-completed' : 'tag-pending'">
+                  {{ isGroupCompleted(g) ? 'Done' : 'Working' }}
+                </span>
                 <span class="group-capacity-tag" [class.capacity-full]="g.members.length >= maxGroupSize">
                   {{ g.members.length }}/{{ maxGroupSize }} {{ g.members.length >= maxGroupSize ? 'Full' : 'Open' }}
                 </span>
@@ -516,6 +583,22 @@
             [class.active]="filterStatus === 'PENDING'" 
             (click)="setFilter('PENDING')">
             Pending ({{ classroom?.pendingCount || 0 }})
+          </button>
+          <button 
+            *ngIf="isGroupsEnabled"
+            type="button" 
+            class="filter-pill" 
+            [class.active]="filterStatus === 'ASSIGNED'" 
+            (click)="setFilter('ASSIGNED')">
+            Grouped ({{ students.length - unassignedStudents.length }})
+          </button>
+          <button 
+            *ngIf="isGroupsEnabled"
+            type="button" 
+            class="filter-pill" 
+            [class.active]="filterStatus === 'UNASSIGNED'" 
+            (click)="setFilter('UNASSIGNED')">
+            Unassigned ({{ unassignedStudents.length }})
           </button>
         </div>
 

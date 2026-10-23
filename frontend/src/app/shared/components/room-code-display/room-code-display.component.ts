@@ -10,6 +10,7 @@ import { ToastService } from '../../../core/services/toast.service';
 export class RoomCodeDisplayComponent {
   @Input() roomCode = '';
   @Input() showLabel = true;
+  @Input() size: 'normal' | 'large' = 'normal';
 
   copied = false;
   private timeoutId: any;

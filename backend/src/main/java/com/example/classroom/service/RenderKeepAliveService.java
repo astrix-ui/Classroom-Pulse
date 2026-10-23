@@ -40,6 +40,9 @@ public class RenderKeepAliveService {
     @Value("${RENDER_EXTERNAL_URL:${APP_PUBLIC_URL:${app.public-url:}}}")
     private String publicServiceUrl;
 
+    @Value("${classroom.session.max-idle-hours:6}")
+    private long maxIdleHours = 6;
+
     private final ClassroomMemoryRepository repository;
     private final RestTemplate restTemplate;
 
@@ -63,8 +66,19 @@ public class RenderKeepAliveService {
             return;
         }
 
+        Duration maxIdle = Duration.ofHours(maxIdleHours);
+
         boolean hasActiveSession = repository.findAll().stream()
-                .anyMatch(ClassroomSession::isActive);
+                .filter(ClassroomSession::isActive)
+                .anyMatch(session -> {
+                    if (session.isExpired(maxIdle)) {
+                        log.info("Classroom session {} has been inactive for >= {} hours. Auto-expiring session to conserve Render hours.",
+                                session.getRoomCode(), maxIdleHours);
+                        session.setActive(false);
+                        return false;
+                    }
+                    return true;
+                });
 
         if (!hasActiveSession) {
             log.debug("No active classrooms in session; skipping keep-alive ping to conserve Render hours.");
@@ -96,6 +110,14 @@ public class RenderKeepAliveService {
 
     public RestTemplate getRestTemplate() {
         return restTemplate;
+    }
+
+    public long getMaxIdleHours() {
+        return maxIdleHours;
+    }
+
+    public void setMaxIdleHours(long maxIdleHours) {
+        this.maxIdleHours = maxIdleHours;
     }
 }
 

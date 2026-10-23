@@ -1,14 +1,20 @@
-<div class="code-container">
-  <span class="code-label" *ngIf="showLabel">Room Code:</span>
-  <div class="code-box">
-    <span class="code-text" [attr.aria-label]="'Room code ' + roomCode">{{ roomCode }}</span>
+<div class="code-container" [class.code-container-lg]="size === 'large'">
+  <span class="code-label" [class.code-label-lg]="size === 'large'" *ngIf="showLabel">Room Code:</span>
+  <div class="code-box" [class.code-box-lg]="size === 'large'">
+    <span class="code-text" [class.code-text-lg]="size === 'large'" [attr.aria-label]="'Room code ' + roomCode">{{ roomCode }}</span>
     <button 
       type="button" 
       class="copy-btn" 
+      [class.copy-btn-lg]="size === 'large'"
       (click)="copyCode()" 
       [attr.aria-label]="copied ? 'Room code copied' : 'Copy room code to clipboard'"
       [title]="copied ? 'Copied!' : 'Copy to clipboard'">
-      <span *ngIf="!copied" class="btn-text">Copy</span>
+      <span *ngIf="!copied" class="btn-text">
+        <svg *ngIf="size === 'large'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>Copy
+      </span>
       <span *ngIf="copied" class="copied-indicator">Copied!</span>
     </button>
   </div>

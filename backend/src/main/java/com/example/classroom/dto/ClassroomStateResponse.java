@@ -19,6 +19,7 @@ public class ClassroomStateResponse {
     private List<StudentGroupDto> groups = new ArrayList<>();
     private List<QuestionDto> questions = new ArrayList<>();
     private Instant createdAt;
+    private Instant lastActivityAt;
 
     public ClassroomStateResponse() {}
 
@@ -151,6 +152,14 @@ public class ClassroomStateResponse {
 
     public void setGroups(List<StudentGroupDto> groups) {
         this.groups = groups != null ? groups : new ArrayList<>();
+    }
+
+    public Instant getLastActivityAt() {
+        return lastActivityAt;
+    }
+
+    public void setLastActivityAt(Instant lastActivityAt) {
+        this.lastActivityAt = lastActivityAt;
     }
 }
 

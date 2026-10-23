@@ -6,10 +6,12 @@ import com.example.classroom.model.*;
 import com.example.classroom.repository.ClassroomMemoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,10 +21,14 @@ public class ClassroomService {
 
     private static final Logger log = LoggerFactory.getLogger(ClassroomService.class);
 
-    // Characters excluding 0, O, 1, I for unambiguous room codes
-    private static final String ROOM_CODE_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    // 6-digit numerical room codes (100000 - 999999) for effortless entry and sharing
+    private static final String FIRST_DIGIT_CHARS = "123456789";
+    private static final String DIGIT_CHARS = "0123456789";
     private static final int ROOM_CODE_LENGTH = 6;
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    @Value("${classroom.session.max-idle-hours:6}")
+    private long maxIdleHours = 6;
 
     private final ClassroomMemoryRepository repository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -58,6 +64,7 @@ public class ClassroomService {
                 throw new DuplicateStudentException(cleanName);
             }
 
+            session.recordActivity();
             String studentId = UUID.randomUUID().toString();
             StudentStatus student = new StudentStatus(studentId, cleanName, Instant.now());
             session.addStudent(student);
@@ -74,6 +81,7 @@ public class ClassroomService {
         ClassroomSession session = getSessionOrThrow(roomCode);
 
         synchronized (session) {
+            session.recordActivity();
             boolean groupUpdated = false;
 
             // When a student leaves the room, ensure they are also removed from any groups
@@ -123,6 +131,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             String questionId = UUID.randomUUID().toString();
             int sequenceNumber = session.nextSequenceNumber();
             Question question = new Question(questionId, questionText.trim(), sequenceNumber, Instant.now());
@@ -154,6 +163,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             Question current = session.getCurrentQuestion();
             if (current == null) {
                 throw new InvalidClassroomStateException("No question has been published to edit");
@@ -186,6 +196,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             Question current = session.getCurrentQuestion();
             if (current != null) {
                 session.removeQuestionFromHistory(current.getQuestionId());
@@ -242,6 +253,7 @@ public class ClassroomService {
         boolean anyUpdated = false;
 
         synchronized (session) {
+            session.recordActivity();
             String groupId = student.getGroupId();
             StudentGroup group = (session.isGroupsEnabled() && groupId != null)
                     ? session.findGroupById(groupId)
@@ -283,6 +295,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             session.resetAllStudentsToPending();
             ClassroomStateResponse state = toSafeState(session);
             broadcastEvent(ClassroomEventType.CLASSROOM_RESET, session.getRoomCode(), state);
@@ -299,6 +312,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             session.setAllowAnswers(allowAnswers);
             ClassroomStateResponse state = toSafeState(session);
             broadcastEvent(ClassroomEventType.ALLOW_ANSWERS_CHANGED, session.getRoomCode(), state);
@@ -342,8 +356,23 @@ public class ClassroomService {
     }
 
     private ClassroomSession getSessionOrThrow(String roomCode) {
-        return repository.findById(roomCode)
+        ClassroomSession session = repository.findById(roomCode)
                 .orElseThrow(() -> new ClassroomNotFoundException(roomCode));
+        checkAndHandleInactivityExpiration(session);
+        return session;
+    }
+
+    private void checkAndHandleInactivityExpiration(ClassroomSession session) {
+        if (session.isActive() && session.isExpired(Duration.ofHours(maxIdleHours))) {
+            synchronized (session) {
+                if (session.isActive() && session.isExpired(Duration.ofHours(maxIdleHours))) {
+                    log.info("Classroom session {} has been inactive for >= {} hours. Auto-expiring session.",
+                            session.getRoomCode(), maxIdleHours);
+                    session.setActive(false);
+                    broadcastEvent(ClassroomEventType.CLASSROOM_CLOSED, session.getRoomCode(), toSafeState(session));
+                }
+            }
+        }
     }
 
     private void verifyTeacherToken(ClassroomSession session, String teacherToken) {
@@ -355,9 +384,9 @@ public class ClassroomService {
     private String generateUniqueRoomCode() {
         for (int i = 0; i < 1000; i++) {
             StringBuilder sb = new StringBuilder(ROOM_CODE_LENGTH);
-            for (int j = 0; j < ROOM_CODE_LENGTH; j++) {
-                int index = RANDOM.nextInt(ROOM_CODE_CHARS.length());
-                sb.append(ROOM_CODE_CHARS.charAt(index));
+            sb.append(FIRST_DIGIT_CHARS.charAt(RANDOM.nextInt(FIRST_DIGIT_CHARS.length())));
+            for (int j = 1; j < ROOM_CODE_LENGTH; j++) {
+                sb.append(DIGIT_CHARS.charAt(RANDOM.nextInt(DIGIT_CHARS.length())));
             }
             String code = sb.toString();
             if (!repository.existsById(code)) {
@@ -400,8 +429,17 @@ public class ClassroomService {
         state.setGroups(session.getGroups().stream()
                 .map(StudentGroupDto::fromDomain)
                 .collect(Collectors.toList()));
+        state.setLastActivityAt(session.getLastActivityAt());
 
         return state;
+    }
+
+    public long getMaxIdleHours() {
+        return maxIdleHours;
+    }
+
+    public void setMaxIdleHours(long maxIdleHours) {
+        this.maxIdleHours = maxIdleHours;
     }
 
     public ClassroomStateResponse configureGroups(String roomCode, String teacherToken, boolean enabled, int maxGroupSize) {
@@ -417,6 +455,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             session.setGroupsEnabled(enabled);
             session.setMaxGroupSize(maxGroupSize);
 
@@ -436,6 +475,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             for (StudentStatus student : session.getStudents().values()) {
                 student.setGroupId(null);
                 student.setGroupName(null);
@@ -466,6 +506,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             if (session.isStudentInAnyGroup(studentId)) {
                 throw new GroupConflictException("You are already in a group");
             }
@@ -501,6 +542,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             StudentGroup group = session.findGroupById(groupId);
             if (group == null) {
                 throw new IllegalArgumentException("Group not found");
@@ -543,6 +585,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             StudentGroup group = session.findGroupById(groupId);
             if (group != null) {
                 group.removeMember(studentId);
@@ -573,6 +616,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             StudentGroup group = session.findGroupById(groupId);
             if (group != null) {
                 group.removeMember(studentId);
@@ -603,6 +647,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             StudentGroup targetGroup = session.findGroupById(targetGroupId);
             if (targetGroup == null) {
                 throw new IllegalArgumentException("Target group not found");
@@ -653,6 +698,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             StudentStatus student = session.getStudent(studentId);
             if (student == null) {
                 throw new StudentNotFoundException(studentId);
@@ -700,6 +746,7 @@ public class ClassroomService {
         }
 
         synchronized (session) {
+            session.recordActivity();
             StudentGroup group = session.findGroupById(groupId);
             if (group == null) {
                 throw new IllegalArgumentException("Group not found");

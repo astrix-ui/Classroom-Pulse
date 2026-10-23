@@ -1,5 +1,6 @@
 package com.example.classroom.model;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
@@ -13,6 +14,7 @@ public class ClassroomSession {
     private final String roomCode;
     private final String teacherToken;
     private final Instant createdAt;
+    private volatile Instant lastActivityAt;
     private volatile boolean active;
     private volatile Question currentQuestion;
     private volatile boolean allowAnswers = false;
@@ -31,6 +33,7 @@ public class ClassroomSession {
         this.roomCode = roomCode;
         this.teacherToken = teacherToken;
         this.createdAt = createdAt;
+        this.lastActivityAt = createdAt != null ? createdAt : Instant.now();
         this.active = true;
         this.currentQuestion = null;
         this.allowAnswers = false;
@@ -46,6 +49,29 @@ public class ClassroomSession {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getLastActivityAt() {
+        return lastActivityAt;
+    }
+
+    public void setLastActivityAt(Instant lastActivityAt) {
+        this.lastActivityAt = lastActivityAt;
+    }
+
+    public void recordActivity() {
+        this.lastActivityAt = Instant.now();
+    }
+
+    public boolean isExpired(Duration maxInactivityDuration) {
+        if (!active) {
+            return false;
+        }
+        Instant reference = lastActivityAt != null ? lastActivityAt : createdAt;
+        if (reference == null || maxInactivityDuration == null) {
+            return false;
+        }
+        return Instant.now().isAfter(reference.plus(maxInactivityDuration));
     }
 
     public boolean isActive() {

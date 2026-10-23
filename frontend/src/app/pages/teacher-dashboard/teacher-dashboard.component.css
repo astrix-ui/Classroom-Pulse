@@ -156,7 +156,20 @@
 .nav-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brand-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.teacher-code-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -649,6 +662,26 @@
   padding: 22px;
 }
 
+.composer-settings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.composer-toggle-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .char-pill {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -764,6 +797,55 @@
   color: var(--text-muted);
 }
 
+.summary-chip-done {
+  color: var(--status-completed);
+}
+
+.chip-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: 0px;
+}
+
+.chip-status-dot.dot-completed {
+  background-color: var(--status-completed);
+}
+
+.chip-status-dot.dot-pending {
+  background-color: var(--status-pending);
+}
+
+.groups-filter-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.group-search-wrap {
+  min-width: 200px;
+}
+
+.group-search-wrap .search-input {
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.group-search-wrap .search-input:focus {
+  border-color: var(--border-focus);
+}
+
 .empty-groups-state {
   padding: 20px;
   text-align: center;
@@ -795,6 +877,16 @@
   border-color: var(--border-strong);
   transform: translateY(-2px);
   box-shadow: var(--shadow-card);
+}
+
+.group-card-item.group-card-done {
+  border-color: rgba(5, 150, 105, 0.35);
+  background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(5, 150, 105, 0.04) 100%);
+}
+
+.group-card-item.group-card-pending {
+  border-color: rgba(217, 119, 6, 0.3);
+  background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(217, 119, 6, 0.02) 100%);
 }
 
 .group-card-header {
